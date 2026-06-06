@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { useAuth } from '@/components/AuthProvider';
@@ -21,8 +22,12 @@ function getPredictionErrorMessage(errorMessage?: string) {
 
   const normalized = errorMessage.toLowerCase();
 
-  if (normalized.includes('permission denied') || normalized.includes('row-level security')) {
+  if (normalized.includes('jwt') || normalized.includes('not authenticated') || normalized.includes('unauthorized')) {
     return 'Please sign in again before saving your prediction.';
+  }
+
+  if (normalized.includes('permission denied') || normalized.includes('row-level security')) {
+    return 'Could not save your prediction because the database rejected the write. Please refresh and try again.';
   }
 
   if (normalized.includes('predictions are locked')) {
@@ -62,9 +67,7 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
 
     const supabase = createClient();
 
-    const payload = {
-      user_id: authUser.id,
-      match_id: match.id,
+    const predictionFields = {
       predicted_home_score: homeScore,
       predicted_away_score: awayScore,
       predicted_outcome: getOutcome(homeScore, awayScore),
@@ -72,9 +75,31 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
       user_reason: reason,
     };
 
-    const { error } = await supabase.from('predictions').upsert(payload, {
-      onConflict: 'user_id,match_id',
-    });
+    const { data: existingPrediction, error: existingPredictionError } = await supabase
+      .from('predictions')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .eq('match_id', match.id)
+      .maybeSingle();
+
+    if (existingPredictionError) {
+      setMessage(getPredictionErrorMessage(existingPredictionError.message));
+      setLoading(false);
+      return;
+    }
+
+    const { error } = existingPrediction
+      ? await supabase
+        .from('predictions')
+        .update(predictionFields)
+        .eq('id', existingPrediction.id)
+      : await supabase
+        .from('predictions')
+        .insert({
+          user_id: authUser.id,
+          match_id: match.id,
+          ...predictionFields,
+        });
 
     if (error) {
       setMessage(getPredictionErrorMessage(error.message));
@@ -151,34 +176,88 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
       <p className="mb-5 text-sm text-gray-400">Pick the score, choose your fan-brain mode, and let AI react.</p>
 
       <div className="grid grid-cols-2 gap-4">
-        <label className="space-y-2">
-          <span className="text-sm text-gray-300">{match.home_team.name}</span>
-          <input type="number" min="0" max="15" value={homeScore} onChange={(e) => setHomeScore(Number(e.target.value))} className="w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-xl font-black" />
-        </label>
-        <label className="space-y-2">
-          <span className="text-sm text-gray-300">{match.away_team.name}</span>
-          <input type="number" min="0" max="15" value={awayScore} onChange={(e) => setAwayScore(Number(e.target.value))} className="w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-xl font-black" />
-        </label>
+        <ScoreStepper label={match.home_team.name} emoji={match.home_team.emoji_flag} value={homeScore} onChange={setHomeScore} />
+        <ScoreStepper label={match.away_team.name} emoji={match.away_team.emoji_flag} value={awayScore} onChange={setAwayScore} />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {styles.map((item) => (
-          <button key={item.value} type="button" onClick={() => setPredictionStyle(item.value)} className={`rounded-2xl border px-3 py-2 text-sm ${predictionStyle === item.value ? 'border-emerald-400 bg-emerald-400 text-gray-950' : 'border-white/10 bg-white/5 text-gray-200'}`}>
-            {item.label}
-          </button>
-        ))}
+        {styles.map((item) => {
+          const selected = predictionStyle === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setPredictionStyle(item.value)}
+              aria-pressed={selected}
+              className={`chip rounded-2xl border px-3 py-2 text-sm font-bold ${
+                selected
+                  ? 'scale-[1.03] border-emerald-400 bg-emerald-400 text-gray-950 shadow-glow-strong'
+                  : 'border-white/10 bg-white/5 text-gray-200 hover:border-emerald-400/40 hover:bg-white/10'
+              }`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional: explain your pick in one sentence..." className="mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-sm" />
+      <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional: explain your pick in one sentence..." className="input-game mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-sm" />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <button disabled={loading} onClick={submitPrediction} className="rounded-full bg-emerald-400 px-5 py-3 font-black text-gray-950 disabled:opacity-50">Save prediction</button>
-        <button disabled={loading} onClick={roastPrediction} className="rounded-full border border-white/10 px-5 py-3 font-bold text-white disabled:opacity-50">Roast my pick</button>
+        <button disabled={loading} onClick={submitPrediction} className="btn btn-primary px-6 py-3">
+          {loading && <Loader2 size={18} className="animate-spin" />}
+          {loading ? 'Saving...' : 'Save prediction'}
+        </button>
+        <button disabled={loading} onClick={roastPrediction} className="btn btn-ghost px-6 py-3">Roast my pick 🔥</button>
       </div>
 
-      {message && <p className="mt-4 text-sm text-gray-300">{message}</p>}
-      {aiVerdict && <div className="mt-4 rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
-      {aiRoast && <div className="mt-4 rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
+      {message && <p className="mt-4 animate-slide-up text-sm text-gray-300">{message}</p>}
+      {aiVerdict && <div className="mt-4 animate-pop-in rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
+      {aiRoast && <div className="mt-4 animate-pop-in rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
     </section>
+  );
+}
+
+function ScoreStepper({
+  label,
+  emoji,
+  value,
+  onChange,
+}: {
+  label: string;
+  emoji?: string | null;
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  const clamp = (next: number) => Math.max(0, Math.min(15, next));
+
+  return (
+    <div className="space-y-2">
+      <span className="flex items-center gap-1.5 text-sm text-gray-300">
+        {emoji && <span aria-hidden>{emoji}</span>}
+        <span className="truncate">{label}</span>
+      </span>
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-gray-950 p-2">
+        <button
+          type="button"
+          aria-label={`Decrease ${label} score`}
+          onClick={() => onChange(clamp(value - 1))}
+          disabled={value <= 0}
+          className="btn btn-ghost h-11 w-11 shrink-0 text-2xl leading-none"
+        >
+          −
+        </button>
+        <span key={value} className="animate-pop min-w-[1.5ch] text-center text-4xl font-black tabular-nums">{value}</span>
+        <button
+          type="button"
+          aria-label={`Increase ${label} score`}
+          onClick={() => onChange(clamp(value + 1))}
+          disabled={value >= 15}
+          className="btn btn-primary h-11 w-11 shrink-0 text-2xl leading-none"
+        >
+          +
+        </button>
+      </div>
+    </div>
   );
 }

@@ -21,18 +21,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    function applySession(nextSession: Session | null) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      applySession(data.session);
+
+      if (data.session) {
+        void supabase.auth.getUser().then(({ data: userData }) => {
+          if (!mounted || !userData.user) return;
+          setUser(userData.user);
+        });
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
     });
 
     return () => {

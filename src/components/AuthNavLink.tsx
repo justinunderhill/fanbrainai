@@ -33,7 +33,7 @@ export function AuthNavLink() {
         type="button"
         onClick={signOut}
         disabled={signingOut}
-        className="rounded-full bg-white px-4 py-2 font-semibold text-gray-950 hover:bg-emerald-200 disabled:opacity-50"
+        className="btn btn-ghost px-4 py-2 text-sm"
       >
         {signingOut ? 'Signing out...' : 'Sign out'}
       </button>
@@ -41,7 +41,7 @@ export function AuthNavLink() {
   }
 
   return (
-    <Link href={href} className="rounded-full bg-white px-4 py-2 font-semibold text-gray-950 hover:bg-emerald-200">
+    <Link href={href} className="btn btn-primary px-4 py-2 text-sm">
       Sign in
     </Link>
   );
