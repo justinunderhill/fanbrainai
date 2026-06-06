@@ -3,6 +3,7 @@ import { buildProfilePrompt } from '@/lib/ai/prompts';
 import { generateText } from '@/lib/ai/openai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 type FanProfileResponse = {
   personality_type: string;
@@ -54,6 +55,10 @@ export async function POST(request: Request) {
     }
 
     const userId = auth.user.id;
+
+    const limit = rateLimit(`ai:profile:${userId}`, { limit: 6, windowMs: 60_000 });
+    if (!limit.success) return tooManyRequestsResponse(limit.retryAfterSeconds);
+
     const supabase = createAdminClient();
 
     const { data: predictions } = await supabase
