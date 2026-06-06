@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export function GenerateProfileButton({ userId, displayName }: { userId: string; displayName?: string | null }) {
   const [loading, setLoading] = useState(false);
@@ -24,9 +25,12 @@ export function GenerateProfileButton({ userId, displayName }: { userId: string;
   }
 
   return (
-    <button onClick={generateProfile} disabled={loading} className="mt-5 rounded-full bg-emerald-400 px-5 py-3 font-black text-gray-950 disabled:opacity-50">
-      {loading ? 'Generating...' : 'Generate AI fan profile'}
-      {message && <span className="mt-3 block text-left text-sm font-normal text-gray-950">{message}</span>}
-    </button>
+    <div className="mt-5">
+      <button onClick={generateProfile} disabled={loading} className="btn btn-primary px-6 py-3">
+        {loading && <Loader2 size={18} className="animate-spin" />}
+        {loading ? 'Generating...' : 'Generate AI fan profile'}
+      </button>
+      {message && <p className="mt-3 animate-slide-up text-sm text-gray-300">{message}</p>}
+    </div>
   );
 }

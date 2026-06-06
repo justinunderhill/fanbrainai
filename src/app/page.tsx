@@ -27,8 +27,8 @@ export default async function Home() {
           <h1 className="text-4xl font-black tracking-tight md:text-6xl">Make your predictions. Let AI reveal what kind of fan you really are.</h1>
           <p className="mt-5 text-lg text-gray-300">FanBrain AI turns match predictions into AI verdicts, safe roasts, post-match debriefs, and dynamic fan personalities. No betting. Just football brains, chaos, and bragging rights.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/matches" className="rounded-full bg-emerald-400 px-6 py-3 font-black text-gray-950">Start predicting</Link>
-            <Link href="/leaderboard" className="rounded-full border border-white/10 px-6 py-3 font-bold text-white">View leaderboard</Link>
+            <Link href="/matches" className="btn btn-primary px-6 py-3 text-base">Start predicting</Link>
+            <Link href="/leaderboard" className="btn btn-ghost px-6 py-3 text-base">View leaderboard</Link>
           </div>
         </div>
       </section>

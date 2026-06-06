@@ -15,3 +15,71 @@ body {
   background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 32%),
     linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(3, 7, 18, 0.96));
 }
+
+@layer base {
+  button,
+  a,
+  [role='button'],
+  summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Tactile, game-like button. `.btn` is the base; pair with a variant. */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full font-black
+      transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out
+      will-change-transform focus-visible:outline-none focus-visible:ring-2
+      focus-visible:ring-emerald-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950
+      active:scale-95 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* Chunky primary: a solid drop "ledge" that compresses on press. */
+  .btn-primary {
+    @apply bg-emerald-400 text-gray-950 shadow-[0_5px_0_0_#047857]
+      hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_7px_22px_-4px_rgba(52,211,153,0.6)]
+      active:translate-y-[3px] active:shadow-[0_2px_0_0_#047857];
+  }
+
+  .btn-ghost {
+    @apply border border-white/10 bg-white/5 text-white hover:-translate-y-0.5
+      hover:border-emerald-400/50 hover:bg-white/10 active:translate-y-0;
+  }
+
+  /* Selectable chip with press feedback. */
+  .chip {
+    @apply transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out
+      will-change-transform active:scale-95;
+  }
+
+  /* Lifts and glows on hover; settles slightly on press. */
+  .card-interactive {
+    @apply transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform
+      hover:-translate-y-1 hover:border-emerald-400/50
+      hover:shadow-[0_18px_44px_-14px_rgba(16,185,129,0.5)] active:translate-y-0 active:scale-[0.99];
+  }
+
+  /* Inputs that light up on focus. */
+  .input-game {
+    @apply transition-[border-color,box-shadow] duration-150 focus:border-emerald-400/70
+      focus:shadow-[0_0_0_3px_rgba(52,211,153,0.18)] focus:outline-none;
+  }
+
+  /* Animated link underline for nav. */
+  .nav-link {
+    @apply relative transition-colors duration-150 after:absolute after:-bottom-1 after:left-0
+      after:h-0.5 after:w-0 after:rounded-full after:bg-emerald-400 after:transition-all
+      after:duration-200 hover:text-white hover:after:w-full;
+  }
+}

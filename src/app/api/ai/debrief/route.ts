@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server';
 import { buildDebriefPrompt } from '@/lib/ai/prompts';
 import { generateText } from '@/lib/ai/openai';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { scorePrediction } from '@/lib/scoring';
 import type { MatchWithTeams } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
+    const authClient = await createClient();
+    const { data: auth } = await authClient.auth.getUser();
+    if (!auth.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json() as { predictionId: string };
     const supabase = createAdminClient();
 
     const { data: prediction, error: predictionError } = await supabase.from('predictions').select('*').eq('id', body.predictionId).single();
     if (predictionError || !prediction) return NextResponse.json({ error: 'Prediction not found.' }, { status: 404 });
+    if (prediction.user_id !== auth.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { data: match, error: matchError } = await supabase.from('matches_with_teams').select('*').eq('id', prediction.match_id).single();
     if (matchError || !match) return NextResponse.json({ error: 'Match not found.' }, { status: 404 });

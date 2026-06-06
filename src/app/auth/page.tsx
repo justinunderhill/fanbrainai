@@ -86,7 +86,7 @@ export default function AuthPage() {
       }
 
       showMessage({ type: 'success', text: 'Signed in. Taking you to matches...' });
-      router.push(getRedirectTarget());
+      router.replace(getRedirectTarget());
       router.refresh();
     } catch (error) {
       showMessage({
@@ -121,10 +121,10 @@ export default function AuthPage() {
 
       if (data.session) {
         showMessage({ type: 'success', text: 'Account created. Taking you to matches...' });
-        router.push(redirectTarget);
+        router.replace(redirectTarget);
         router.refresh();
       } else {
-        showMessage({ type: 'success', text: 'Account created. Check your email if confirmation is enabled.' });
+        showMessage({ type: 'success', text: 'Account created. Please sign in.' });
       }
     } catch (error) {
       showMessage({
@@ -143,14 +143,14 @@ export default function AuthPage() {
         <button
           type="button"
           onClick={() => setMode('password')}
-          className={`rounded-xl px-3 py-2 text-sm font-bold ${mode === 'password' ? 'bg-emerald-400 text-gray-950' : 'text-gray-300'}`}
+          className={`chip rounded-xl px-3 py-2 text-sm font-bold ${mode === 'password' ? 'bg-emerald-400 text-gray-950 shadow-glow-strong' : 'text-gray-300 hover:text-white'}`}
         >
           Password
         </button>
         <button
           type="button"
           onClick={() => setMode('magic')}
-          className={`rounded-xl px-3 py-2 text-sm font-bold ${mode === 'magic' ? 'bg-emerald-400 text-gray-950' : 'text-gray-300'}`}
+          className={`chip rounded-xl px-3 py-2 text-sm font-bold ${mode === 'magic' ? 'bg-emerald-400 text-gray-950 shadow-glow-strong' : 'text-gray-300 hover:text-white'}`}
         >
           Magic link
         </button>
@@ -165,7 +165,7 @@ export default function AuthPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
+            className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
           />
         </label>
 
@@ -179,7 +179,7 @@ export default function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
                 autoComplete="current-password"
-                className="w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
+                className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
               />
             </label>
             <label className="block space-y-2">
@@ -189,7 +189,7 @@ export default function AuthPage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Optional for sign-up"
                 autoComplete="nickname"
-                className="w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
+                className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -197,7 +197,7 @@ export default function AuthPage() {
                 type="button"
                 disabled={loading}
                 onClick={signInWithPassword}
-                className="rounded-full bg-emerald-400 px-5 py-3 font-black text-gray-950 disabled:opacity-50"
+                className="btn btn-primary px-5 py-3"
               >
                 Sign in
               </button>
@@ -205,7 +205,7 @@ export default function AuthPage() {
                 type="button"
                 disabled={loading}
                 onClick={signUpWithPassword}
-                className="rounded-full border border-white/10 px-5 py-3 font-bold text-white disabled:opacity-50"
+                className="btn btn-ghost px-5 py-3"
               >
                 Sign up
               </button>
@@ -216,7 +216,7 @@ export default function AuthPage() {
             type="button"
             disabled={loading}
             onClick={sendMagicLink}
-            className="w-full rounded-full bg-emerald-400 px-5 py-3 font-black text-gray-950 disabled:opacity-50"
+            className="btn btn-primary w-full px-5 py-3"
           >
             Send magic link
           </button>
@@ -224,7 +224,7 @@ export default function AuthPage() {
       </div>
 
       {message && (
-        <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+        <p className={`mt-4 animate-slide-up rounded-2xl border px-4 py-3 text-sm ${
           messageType === 'error'
             ? 'border-red-400/30 bg-red-400/10 text-red-100'
             : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'

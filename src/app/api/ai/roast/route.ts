@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server';
 import { buildRoastPrompt } from '@/lib/ai/prompts';
 import { generateText } from '@/lib/ai/openai';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
+    const authClient = await createClient();
+    const { data: auth } = await authClient.auth.getUser();
+    if (!auth.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json() as {
       matchId: string;
       homeScore: number;
