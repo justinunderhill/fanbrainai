@@ -3,6 +3,7 @@ import { buildRoastPrompt } from '@/lib/ai/prompts';
 import { generateText } from '@/lib/ai/openai';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
     const authClient = await createClient();
     const { data: auth } = await authClient.auth.getUser();
     if (!auth.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const limit = rateLimit(`ai:roast:${auth.user.id}`, { limit: 15, windowMs: 60_000 });
+    if (!limit.success) return tooManyRequestsResponse(limit.retryAfterSeconds);
 
     const body = await request.json() as {
       matchId: string;
