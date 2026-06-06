@@ -13,6 +13,23 @@ type FanProfileResponse = {
   summary: string;
 };
 
+// LLMs often wrap JSON in markdown fences (```json ... ```) or add stray
+// prose. Pull out the JSON object before parsing.
+function extractJsonObject(raw: string): string {
+  let text = raw.trim();
+
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) text = fenced[1].trim();
+
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first !== -1 && last > first) {
+    text = text.slice(first, last + 1);
+  }
+
+  return text;
+}
+
 function isFanProfileResponse(value: unknown): value is FanProfileResponse {
   if (!value || typeof value !== 'object') return false;
   const profile = value as Partial<Record<keyof FanProfileResponse, unknown>>;
@@ -51,7 +68,13 @@ export async function POST(request: Request) {
 
     const summary = predictions.map((p, i) => `${i + 1}. ${p.predicted_home_score}-${p.predicted_away_score}, outcome ${p.predicted_outcome}, style ${p.prediction_style}, points ${p.points_awarded}`).join('\n');
     const raw = await generateText(buildProfilePrompt({ displayName: body.displayName ?? 'This fan', predictionSummary: summary }));
-    const parsed: unknown = JSON.parse(raw);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(extractJsonObject(raw));
+    } catch {
+      return NextResponse.json({ error: 'AI profile response was not valid JSON.' }, { status: 502 });
+    }
 
     if (!isFanProfileResponse(parsed)) {
       return NextResponse.json({ error: 'AI profile response was not valid.' }, { status: 502 });
