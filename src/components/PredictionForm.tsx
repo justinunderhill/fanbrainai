@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
+import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
+import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
 import { getOutcome } from '@/lib/utils';
 
@@ -35,6 +37,7 @@ function getPredictionErrorMessage(errorMessage?: string) {
 }
 
 export function PredictionForm({ match }: { match: MatchWithTeams }) {
+  const { loading: authLoading, user: authUser } = useAuth();
   const [homeScore, setHomeScore] = useState(1);
   const [awayScore, setAwayScore] = useState(1);
   const [predictionStyle, setPredictionStyle] = useState<PredictionStyle>('head');
@@ -51,16 +54,16 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
     setAiVerdict(null);
     setAiRoast(null);
 
-    const supabase = createClient();
-    const { data: auth, error: authError } = await supabase.auth.getUser();
-    if (authError || !auth.user) {
+    if (!authUser) {
       setMessage('Please sign in again before saving your prediction.');
       setLoading(false);
       return;
     }
 
+    const supabase = createClient();
+
     const payload = {
-      user_id: auth.user.id,
+      user_id: authUser.id,
       match_id: match.id,
       predicted_home_score: homeScore,
       predicted_away_score: awayScore,
@@ -96,7 +99,7 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
       await supabase
         .from('predictions')
         .update({ ai_verdict: verdict.text })
-        .eq('user_id', auth.user.id)
+        .eq('user_id', authUser.id)
         .eq('match_id', match.id);
     }
 
@@ -121,19 +124,22 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
 
     setAiRoast(roast.text ?? null);
 
-    const supabase = createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (auth.user && roast.text) {
+    if (authUser && roast.text) {
+      const supabase = createClient();
       await supabase
         .from('predictions')
         .update({ ai_roast: roast.text })
-        .eq('user_id', auth.user.id)
+        .eq('user_id', authUser.id)
         .eq('match_id', match.id);
     }
     setLoading(false);
   }
 
   const locked = new Date(match.kickoff_time).getTime() <= renderedAt;
+
+  if (!authLoading && !authUser) {
+    return <SignInToPredictPanel returnTo={`/matches/${match.id}`} />;
+  }
 
   if (locked) {
     return <div className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-5 text-amber-100">Predictions are locked for this match.</div>;

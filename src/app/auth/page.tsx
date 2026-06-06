@@ -86,7 +86,7 @@ export default function AuthPage() {
       }
 
       showMessage({ type: 'success', text: 'Signed in. Taking you to matches...' });
-      router.push(getRedirectTarget());
+      router.replace(getRedirectTarget());
       router.refresh();
     } catch (error) {
       showMessage({
@@ -121,10 +121,10 @@ export default function AuthPage() {
 
       if (data.session) {
         showMessage({ type: 'success', text: 'Account created. Taking you to matches...' });
-        router.push(redirectTarget);
+        router.replace(redirectTarget);
         router.refresh();
       } else {
-        showMessage({ type: 'success', text: 'Account created. Check your email if confirmation is enabled.' });
+        showMessage({ type: 'success', text: 'Account created. Please sign in.' });
       }
     } catch (error) {
       showMessage({

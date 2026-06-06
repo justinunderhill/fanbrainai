@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PredictionForm } from '@/components/PredictionForm';
+import { PredictionAuthGate } from '@/components/PredictionAuthGate';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -19,7 +18,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     .select('*')
     .eq('id', id)
     .single();
-  const { data: auth } = await supabase.auth.getUser();
 
   if (!data) notFound();
   const match = data as MatchWithTeams;
@@ -45,26 +43,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         <p className="mt-6 text-gray-300">{formatKickoff(match.kickoff_time)} · {match.venue ?? 'Venue TBC'}</p>
       </section>
 
-      {auth.user ? <PredictionForm match={match} /> : <SignInToPredict matchId={match.id} />}
+      <PredictionAuthGate match={match} />
     </div>
-  );
-}
-
-function SignInToPredict({ matchId }: { matchId: string }) {
-  const next = `/matches/${matchId}`;
-
-  return (
-    <section className="rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-5">
-      <h2 className="text-xl font-black text-emerald-100">Sign in to predict</h2>
-      <p className="mt-2 text-sm text-gray-300">
-        Match details are public, but predictions are saved to your FanBrain profile.
-      </p>
-      <Link
-        href={`/auth?next=${encodeURIComponent(next)}`}
-        className="mt-5 inline-flex rounded-full bg-emerald-400 px-5 py-3 font-black text-gray-950"
-      >
-        Sign in to predict
-      </Link>
-    </section>
   );
 }
