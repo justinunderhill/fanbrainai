@@ -1,0 +1,21 @@
+import Link from 'next/link';
+import { BrainCircuit } from 'lucide-react';
+
+export function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-gray-950/85 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <Link href="/" className="flex items-center gap-2 font-black tracking-tight">
+          <span className="rounded-2xl bg-emerald-400 p-2 text-gray-950"><BrainCircuit size={20} /></span>
+          <span>FanBrain AI</span>
+        </Link>
+        <nav className="flex items-center gap-4 text-sm text-gray-300">
+          <Link href="/matches" className="hover:text-white">Matches</Link>
+          <Link href="/leaderboard" className="hover:text-white">Leaderboard</Link>
+          <Link href="/profile" className="hover:text-white">Profile</Link>
+          <Link href="/auth" className="rounded-full bg-white px-4 py-2 font-semibold text-gray-950 hover:bg-emerald-200">Sign in</Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
