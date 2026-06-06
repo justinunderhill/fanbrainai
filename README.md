@@ -46,14 +46,27 @@ OPENAI_API_KEY=
 3. Run `supabase/schema.sql`.
 4. Run `supabase/seed.sql`.
 5. Enable email magic links in Supabase Auth.
-6. Add these redirect URLs in Supabase Auth settings:
+6. Enable email/password sign-ins in Supabase Auth for local testing.
+7. Add these redirect URLs in Supabase Auth settings:
    - `http://localhost:3000/auth/confirm`
    - your Vercel production URL + `/auth/confirm`
+
+## Local auth testing
+
+Magic-link auth can hit Supabase email rate limits during development. The `/auth` page also supports email/password auth so the MVP loop can be tested locally without waiting for emails.
+
+1. In Supabase Auth settings, keep Email provider enabled.
+2. Enable password sign-ins. For fastest local testing, disable email confirmation in the Supabase project used for development.
+3. Start the app with `npm run dev`.
+4. Open `/auth`, choose `Password`, and use `Sign up` with an email and password.
+5. If email confirmation is disabled, the app redirects to `/matches` after sign-up or sign-in. If confirmation is enabled, confirm the email first, then sign in with the password.
+
+Magic links remain available from the `Magic link` tab and still use `/auth/confirm`.
 
 ## MVP user flow
 
 1. User opens matches.
-2. User signs in by magic link.
+2. User signs in by magic link or email/password.
 3. User submits a score prediction.
 4. App stores prediction in Supabase.
 5. App calls `/api/ai/verdict` and displays an AI verdict.
@@ -117,4 +130,3 @@ Before public launch:
 - Add rate limiting to AI routes.
 - Add share cards only after the core loop works.
 - Add moderation tests for roast mode.
-

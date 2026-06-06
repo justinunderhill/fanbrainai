@@ -118,7 +118,11 @@ security definer set search_path = public
 as $$
 begin
   insert into public.users (id, display_name, username)
-  values (new.id, coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)), split_part(new.email, '@', 1))
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
+    lower(regexp_replace(split_part(new.email, '@', 1), '[^a-zA-Z0-9_]', '', 'g')) || '-' || left(new.id::text, 8)
+  )
   on conflict (id) do nothing;
   return new;
 end;
@@ -163,6 +167,42 @@ create policy "Users can read own predictions" on public.predictions for select 
 create policy "Users can create own predictions" on public.predictions for insert with check (auth.uid() = user_id);
 create policy "Users can update own predictions" on public.predictions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users can read own fan profile" on public.fan_profiles for select using (auth.uid() = user_id);
+
+grant usage on schema public to anon, authenticated;
+
+revoke all on public.users from anon, authenticated;
+revoke all on public.teams from anon, authenticated;
+revoke all on public.matches from anon, authenticated;
+revoke all on public.predictions from anon, authenticated;
+revoke all on public.fan_profiles from anon, authenticated;
+
+grant select on public.teams to anon, authenticated;
+grant select on public.matches to anon, authenticated;
+
+grant select on public.users to authenticated;
+grant update (display_name, username, avatar_url) on public.users to authenticated;
+
+grant select on public.predictions to authenticated;
+grant insert (
+  user_id,
+  match_id,
+  predicted_home_score,
+  predicted_away_score,
+  predicted_outcome,
+  prediction_style,
+  user_reason
+) on public.predictions to authenticated;
+grant update (
+  predicted_home_score,
+  predicted_away_score,
+  predicted_outcome,
+  prediction_style,
+  user_reason,
+  ai_verdict,
+  ai_roast
+) on public.predictions to authenticated;
+
+grant select on public.fan_profiles to authenticated;
 
 -- Leaderboard is intentionally public; it exposes display names and aggregate scores only.
 grant select on public.matches_with_teams to anon, authenticated;

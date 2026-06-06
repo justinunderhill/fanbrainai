@@ -14,6 +14,26 @@ const styles: { value: PredictionStyle; label: string }[] = [
   { value: 'vibes', label: 'Vibes only' },
 ];
 
+function getPredictionErrorMessage(errorMessage?: string) {
+  if (!errorMessage) return 'Could not save your prediction. Please try again.';
+
+  const normalized = errorMessage.toLowerCase();
+
+  if (normalized.includes('permission denied') || normalized.includes('row-level security')) {
+    return 'Please sign in again before saving your prediction.';
+  }
+
+  if (normalized.includes('predictions are locked')) {
+    return 'Predictions are locked for this match.';
+  }
+
+  if (normalized.includes('duplicate key')) {
+    return 'You already have a prediction for this match. Refresh and try updating it again.';
+  }
+
+  return 'Could not save your prediction. Please check the scores and try again.';
+}
+
 export function PredictionForm({ match }: { match: MatchWithTeams }) {
   const [homeScore, setHomeScore] = useState(1);
   const [awayScore, setAwayScore] = useState(1);
@@ -32,9 +52,9 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
     setAiRoast(null);
 
     const supabase = createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      setMessage('Please sign in before submitting a prediction.');
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) {
+      setMessage('Please sign in again before saving your prediction.');
       setLoading(false);
       return;
     }
@@ -54,7 +74,7 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getPredictionErrorMessage(error.message));
       setLoading(false);
       return;
     }

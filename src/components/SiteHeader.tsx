@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BrainCircuit } from 'lucide-react';
+import { AuthNavLink } from '@/components/AuthNavLink';
 
 export function SiteHeader() {
   return (
@@ -13,7 +14,7 @@ export function SiteHeader() {
           <Link href="/matches" className="hover:text-white">Matches</Link>
           <Link href="/leaderboard" className="hover:text-white">Leaderboard</Link>
           <Link href="/profile" className="hover:text-white">Profile</Link>
-          <Link href="/auth" className="rounded-full bg-white px-4 py-2 font-semibold text-gray-950 hover:bg-emerald-200">Sign in</Link>
+          <AuthNavLink />
         </nav>
       </div>
     </header>
