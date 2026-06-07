@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrainCircuit, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
@@ -18,18 +19,50 @@ async function getMatches() {
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
   const matches = supabaseConfigured ? await getMatches() : [];
+  const featuredMatch = matches[0];
 
   return (
     <div className="space-y-10">
-      <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-8 shadow-glow md:p-12">
-        <div className="max-w-3xl">
-          <p className="mb-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-200">AI football engagement lab</p>
+      <section className="stadium-hero relative overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-glow sm:p-8 md:p-12">
+        <div className="pitch-lines pointer-events-none absolute inset-0 opacity-60" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-emerald-400/18 to-transparent" />
+        <div className="relative max-w-3xl">
+          <p className="mb-4 inline-flex rounded-full border border-amber-300/35 bg-amber-300/12 px-4 py-2 text-sm font-bold text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.16)]">
+            AI football engagement lab
+          </p>
           <h1 className="text-4xl font-black tracking-tight md:text-6xl">Make your predictions. Let AI reveal what kind of fan you really are.</h1>
-          <p className="mt-5 text-lg text-gray-300">FanBrain AI turns match predictions into AI verdicts, safe roasts, post-match debriefs, and dynamic fan personalities. No betting. Just football brains, chaos, and bragging rights.</p>
+          <p className="mt-5 max-w-2xl text-lg text-gray-200">
+            FanBrain AI turns match predictions into AI verdicts, safe roasts, post-match debriefs, and dynamic fan personalities. No betting. Just football brains, chaos, and bragging rights.
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/matches" className="btn btn-primary px-6 py-3 text-base">Start predicting</Link>
             <Link href="/leaderboard" className="btn btn-ghost px-6 py-3 text-base">View leaderboard</Link>
           </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-gray-950/55 p-4 backdrop-blur">
+              <BrainCircuit className="mb-3 text-emerald-300" size={22} />
+              <p className="text-sm font-black">AI verdicts</p>
+              <p className="mt-1 text-xs text-gray-300">Sharp takes after every pick.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-gray-950/55 p-4 backdrop-blur">
+              <Flame className="mb-3 text-orange-300" size={22} />
+              <p className="text-sm font-black">Safe roasts</p>
+              <p className="mt-1 text-xs text-gray-300">Playful heat, no abuse.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-gray-950/55 p-4 backdrop-blur">
+              <Globe2 className="mb-3 text-sky-300" size={22} />
+              <p className="text-sm font-black">Global fever</p>
+              <p className="mt-1 text-xs text-gray-300">Built for the 2026 World Cup buzz.</p>
+            </div>
+          </div>
+          {featuredMatch && (
+            <div className="mt-8 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-gray-200 backdrop-blur">
+              <Trophy size={17} className="shrink-0 text-amber-200" />
+              <span className="truncate font-bold">
+                Next up: {featuredMatch.home_team.name} vs {featuredMatch.away_team.name}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

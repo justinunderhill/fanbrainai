@@ -39,23 +39,25 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <section className="card-gradient rounded-[2rem] border border-white/10 p-6 shadow-glow">
-        <div className="mb-5 flex items-center justify-between text-sm text-gray-400">
-          <span>{match.stage}</span>
-          <span className="rounded-full border border-white/10 px-3 py-1 uppercase">{match.status}</span>
+      <section className="stadium-hero relative overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-glow">
+        <div className="pitch-lines pointer-events-none absolute inset-0 opacity-45" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-emerald-400/16 to-transparent" />
+        <div className="relative mb-5 flex items-center justify-between text-sm text-gray-300">
+          <span className="font-bold">{match.stage}</span>
+          <span className="rounded-full border border-amber-300/35 bg-amber-300/12 px-3 py-1 text-xs font-black uppercase tracking-wide text-amber-100">{match.status}</span>
         </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <div>
-            <div className="text-5xl">{match.home_team.emoji_flag}</div>
-            <h1 className="mt-2 text-2xl font-black">{match.home_team.name}</h1>
+        <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="min-w-0">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-gray-950/55 text-5xl backdrop-blur">{match.home_team.emoji_flag}</div>
+            <h1 className="mt-3 truncate text-2xl font-black">{match.home_team.name}</h1>
           </div>
-          <div className="rounded-3xl bg-white/10 px-5 py-3 text-2xl font-black">vs</div>
-          <div className="text-right">
-            <div className="text-5xl">{match.away_team.emoji_flag}</div>
-            <h1 className="mt-2 text-2xl font-black">{match.away_team.name}</h1>
+          <div className="rounded-3xl border border-white/10 bg-gray-950/60 px-5 py-3 text-2xl font-black shadow-[0_0_30px_rgba(16,185,129,0.18)] backdrop-blur">vs</div>
+          <div className="min-w-0 text-right">
+            <div className="ml-auto inline-flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-gray-950/55 text-5xl backdrop-blur">{match.away_team.emoji_flag}</div>
+            <h1 className="mt-3 truncate text-2xl font-black">{match.away_team.name}</h1>
           </div>
         </div>
-        <p className="mt-6 text-gray-300">{formatKickoff(match.kickoff_time)} · {match.venue ?? 'Venue TBC'}</p>
+        <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)} · {match.venue ?? 'Venue TBC'}</p>
       </section>
 
       <PredictionAuthGate match={match} initialPrediction={initialPrediction} />

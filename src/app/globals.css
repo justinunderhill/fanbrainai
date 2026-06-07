@@ -7,13 +7,43 @@
 }
 
 body {
-  background: #030712;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(3, 7, 18, 0.4), #030712 520px),
+    radial-gradient(circle at 14% 12%, rgba(20, 184, 166, 0.22), transparent 28rem),
+    radial-gradient(circle at 82% 4%, rgba(245, 158, 11, 0.16), transparent 24rem),
+    #030712;
   color: #f9fafb;
 }
 
 .card-gradient {
-  background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 32%),
-    linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(3, 7, 18, 0.96));
+  background:
+    linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(3, 7, 18, 0.93)),
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.2), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(251, 191, 36, 0.11), transparent 28%);
+}
+
+.stadium-hero {
+  background-image:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.94) 0%, rgba(3, 7, 18, 0.82) 42%, rgba(3, 7, 18, 0.38) 100%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.04), rgba(3, 7, 18, 0.88)),
+    url('/images/stadium-world-night.png');
+  background-position: center;
+  background-size: cover;
+}
+
+.pitch-lines {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, black, transparent 72%);
+}
+
+.field-arc {
+  background:
+    radial-gradient(circle at 50% -30%, transparent 0 90px, rgba(255, 255, 255, 0.13) 91px 93px, transparent 94px),
+    linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.18), transparent);
 }
 
 @layer base {
