@@ -105,7 +105,9 @@ select
   coalesce(u.display_name, u.username, 'Anonymous fan') as display_name,
   coalesce(sum(p.points_awarded), 0)::int as total_points,
   count(*) filter (where p.points_awarded = 5)::int as exact_scores,
-  count(*) filter (where p.points_awarded >= 3)::int as correct_outcomes,
+  -- Outcome-only hits (correct result, wrong scoreline). Exact scores are a
+  -- separate bucket above, so this filters on exactly 3 to avoid double-counting.
+  count(*) filter (where p.points_awarded = 3)::int as correct_outcomes,
   count(*)::int as total_predictions
 from public.predictions p
 left join public.users u on u.id = p.user_id
