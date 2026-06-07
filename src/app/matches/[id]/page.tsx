@@ -4,7 +4,7 @@ import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { formatKickoff } from '@/lib/utils';
-import type { MatchWithTeams } from '@/lib/types';
+import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   if (!hasSupabasePublicEnv()) {
@@ -21,6 +21,21 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
   if (!data) notFound();
   const match = data as MatchWithTeams;
+
+  // Load the signed-in user's existing pick (if any) so the form can pre-fill
+  // for editing rather than starting from defaults. RLS restricts this to the
+  // user's own row.
+  const { data: { user } } = await supabase.auth.getUser();
+  let initialPrediction: Prediction | null = null;
+  if (user) {
+    const { data: existing } = await supabase
+      .from('predictions')
+      .select('*')
+      .eq('match_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    initialPrediction = (existing as Prediction | null) ?? null;
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -43,7 +58,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         <p className="mt-6 text-gray-300">{formatKickoff(match.kickoff_time)} · {match.venue ?? 'Venue TBC'}</p>
       </section>
 
-      <PredictionAuthGate match={match} />
+      <PredictionAuthGate match={match} initialPrediction={initialPrediction} />
     </div>
   );
 }

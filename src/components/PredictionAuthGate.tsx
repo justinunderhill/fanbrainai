@@ -1,11 +1,17 @@
 'use client';
 
-import type { MatchWithTeams } from '@/lib/types';
+import type { MatchWithTeams, Prediction } from '@/lib/types';
 import { PredictionForm } from '@/components/PredictionForm';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { useAuth } from '@/components/AuthProvider';
 
-export function PredictionAuthGate({ match }: { match: MatchWithTeams }) {
+export function PredictionAuthGate({
+  match,
+  initialPrediction = null,
+}: {
+  match: MatchWithTeams;
+  initialPrediction?: Prediction | null;
+}) {
   const { loading, user } = useAuth();
 
   if (loading) {
@@ -20,5 +26,5 @@ export function PredictionAuthGate({ match }: { match: MatchWithTeams }) {
     return <SignInToPredictPanel returnTo={`/matches/${match.id}`} />;
   }
 
-  return <PredictionForm match={match} />;
+  return <PredictionForm match={match} initialPrediction={initialPrediction} />;
 }

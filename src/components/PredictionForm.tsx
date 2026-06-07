@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
+import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
@@ -41,17 +41,36 @@ function getPredictionErrorMessage(errorMessage?: string) {
   return 'Could not save your prediction. Please check the scores and try again.';
 }
 
-export function PredictionForm({ match }: { match: MatchWithTeams }) {
+export function PredictionForm({
+  match,
+  initialPrediction = null,
+}: {
+  match: MatchWithTeams;
+  initialPrediction?: Prediction | null;
+}) {
   const { loading: authLoading, user: authUser } = useAuth();
-  const [homeScore, setHomeScore] = useState(1);
-  const [awayScore, setAwayScore] = useState(1);
-  const [predictionStyle, setPredictionStyle] = useState<PredictionStyle>('head');
-  const [reason, setReason] = useState('');
-  const [aiVerdict, setAiVerdict] = useState<string | null>(null);
-  const [aiRoast, setAiRoast] = useState<string | null>(null);
+  const isEditing = Boolean(initialPrediction);
+  // Seed from the existing pick (lazy initializers run once, so no flash).
+  const [homeScore, setHomeScore] = useState(() => initialPrediction?.predicted_home_score ?? 1);
+  const [awayScore, setAwayScore] = useState(() => initialPrediction?.predicted_away_score ?? 1);
+  const [predictionStyle, setPredictionStyle] = useState<PredictionStyle>(() => initialPrediction?.prediction_style ?? 'head');
+  const [reason, setReason] = useState(() => initialPrediction?.user_reason ?? '');
+  const [aiVerdict, setAiVerdict] = useState<string | null>(initialPrediction?.ai_verdict ?? null);
+  const [aiRoast, setAiRoast] = useState<string | null>(initialPrediction?.ai_roast ?? null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [renderedAt] = useState(() => Date.now());
+  // The score/style the current verdict was generated for, so an edit that only
+  // touches the reason text doesn't burn an AI call (and the rate limit).
+  const lastVerdictPick = useRef(
+    initialPrediction?.ai_verdict
+      ? {
+          home: initialPrediction.predicted_home_score,
+          away: initialPrediction.predicted_away_score,
+          style: initialPrediction.prediction_style,
+        }
+      : null,
+  );
 
   async function submitPrediction() {
     setLoading(true);
@@ -107,6 +126,21 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
       return;
     }
 
+    // Only (re)generate the AI verdict when the score or style actually changed.
+    // Editing just the reason text keeps the existing verdict and saves a call.
+    const previous = lastVerdictPick.current;
+    const pickChanged =
+      !previous ||
+      previous.home !== homeScore ||
+      previous.away !== awayScore ||
+      previous.style !== predictionStyle;
+
+    if (!pickChanged) {
+      setMessage('Prediction updated.');
+      setLoading(false);
+      return;
+    }
+
     const verdictResponse = await fetch('/api/ai/verdict', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -121,6 +155,7 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
 
     setAiVerdict(verdict.text ?? null);
     if (verdict.text) {
+      lastVerdictPick.current = { home: homeScore, away: awayScore, style: predictionStyle };
       await supabase
         .from('predictions')
         .update({ ai_verdict: verdict.text })
@@ -128,7 +163,11 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
         .eq('match_id', match.id);
     }
 
-    setMessage('Prediction saved. FanBrain has judged your football brain.');
+    setMessage(
+      isEditing
+        ? 'Prediction updated. FanBrain has re-judged your call.'
+        : 'Prediction saved. FanBrain has judged your football brain.',
+    );
     setLoading(false);
   }
 
@@ -167,13 +206,36 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
   }
 
   if (locked) {
-    return <div className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-5 text-amber-100">Predictions are locked for this match.</div>;
+    if (!initialPrediction) {
+      return <div className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-5 text-amber-100">Predictions are locked for this match.</div>;
+    }
+    const styleLabel = styles.find((s) => s.value === initialPrediction.prediction_style)?.label ?? initialPrediction.prediction_style;
+    return (
+      <section className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black text-amber-100">Your locked-in pick</h2>
+          <span className="rounded-full border border-amber-400/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">Locked</span>
+        </div>
+        <p className="mt-1 text-sm text-amber-200/80">Predictions are closed for this match — here&apos;s what you called.</p>
+        <div className="mt-4 flex items-center gap-3 text-amber-50">
+          <span className="text-3xl font-black tabular-nums">{initialPrediction.predicted_home_score} – {initialPrediction.predicted_away_score}</span>
+          <span className="rounded-full bg-amber-400/20 px-3 py-1 text-sm font-bold">{styleLabel}</span>
+        </div>
+        {initialPrediction.user_reason && <p className="mt-3 text-sm text-amber-100/90">&ldquo;{initialPrediction.user_reason}&rdquo;</p>}
+        {aiVerdict && <div className="mt-4 rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
+        {aiRoast && <div className="mt-4 rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
+      </section>
+    );
   }
 
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-      <h2 className="mb-1 text-xl font-black">Make your prediction</h2>
-      <p className="mb-5 text-sm text-gray-400">Pick the score, choose your fan-brain mode, and let AI react.</p>
+      <h2 className="mb-1 text-xl font-black">{isEditing ? 'Update your prediction' : 'Make your prediction'}</h2>
+      <p className="mb-5 text-sm text-gray-400">
+        {isEditing
+          ? `You called ${initialPrediction!.predicted_home_score}–${initialPrediction!.predicted_away_score}. Tweak it before kickoff and FanBrain will re-react.`
+          : 'Pick the score, choose your fan-brain mode, and let AI react.'}
+      </p>
 
       <div className="grid grid-cols-2 gap-4">
         <ScoreStepper label={match.home_team.name} emoji={match.home_team.emoji_flag} value={homeScore} onChange={setHomeScore} />
@@ -206,7 +268,7 @@ export function PredictionForm({ match }: { match: MatchWithTeams }) {
       <div className="mt-4 flex flex-wrap gap-3">
         <button disabled={loading} onClick={submitPrediction} className="btn btn-primary px-6 py-3">
           {loading && <Loader2 size={18} className="animate-spin" />}
-          {loading ? 'Saving...' : 'Save prediction'}
+          {loading ? 'Saving...' : isEditing ? 'Update prediction' : 'Save prediction'}
         </button>
         <button disabled={loading} onClick={roastPrediction} className="btn btn-ghost px-6 py-3">Roast my pick 🔥</button>
       </div>
