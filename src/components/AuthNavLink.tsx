@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
@@ -15,12 +15,12 @@ type AuthNavLinkProps = {
 
 export function AuthNavLink({ className = '', onNavigate }: AuthNavLinkProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { loading, user } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
-  const href = pathname && pathname !== '/auth'
-    ? `/auth?next=${encodeURIComponent(pathname)}`
-    : '/auth';
+  // Generic header sign-in lands on the Matches hub (the auth page default).
+  // The "Sign in to predict" CTA on a match still passes its own `next` so it
+  // can return the user to that match to finish their pick.
+  const href = '/auth';
 
   async function signOut() {
     setSigningOut(true);

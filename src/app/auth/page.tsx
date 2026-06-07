@@ -15,18 +15,10 @@ function getRedirectTarget() {
   const params = new URLSearchParams(window.location.search);
   const next = params.get('next');
 
-  if (next?.startsWith('/')) return next;
-
-  if (document.referrer) {
-    try {
-      const referrer = new URL(document.referrer);
-      if (referrer.origin === window.location.origin && referrer.pathname !== '/auth') {
-        return `${referrer.pathname}${referrer.search}`;
-      }
-    } catch {
-      return fallback;
-    }
-  }
+  // Only honor an explicit, same-origin `next` (e.g. the "Sign in to predict"
+  // CTA returning you to a match). Otherwise land on the Matches hub — no
+  // referrer-based guessing, which used to dump users on a random match page.
+  if (next && next.startsWith('/') && !next.startsWith('//')) return next;
 
   return fallback;
 }

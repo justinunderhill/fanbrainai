@@ -41,9 +41,12 @@ export default async function ProfilePage() {
             <Metric label="Loyalty" value={profile.loyalty_score} />
             <Metric label="Risk" value={profile.risk_score} />
           </div>
+          <div className="border-t border-white/10 pt-4">
+            <p className="text-sm text-gray-400">Made more picks since this was generated? Refresh your read.</p>
+            <GenerateProfileButton userId={auth.user.id} displayName={userRow?.display_name} hasProfile />
+          </div>
         </div>
       )}
-      {profile && <GenerateProfileButton userId={auth.user.id} displayName={userRow?.display_name} />}
     </div>
   );
 }
