@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
 
 type AuthMode = 'magic' | 'password';
@@ -202,16 +203,20 @@ export default function AuthPage() {
                 Sign up
               </button>
             </div>
+            <PrivacyNote />
           </>
         ) : (
-          <button
-            type="button"
-            disabled={loading}
-            onClick={sendMagicLink}
-            className="btn btn-primary w-full px-5 py-3"
-          >
-            Send magic link
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={sendMagicLink}
+              className="btn btn-primary w-full px-5 py-3"
+            >
+              Send magic link
+            </button>
+            <PrivacyNote />
+          </>
         )}
       </div>
 
@@ -225,6 +230,18 @@ export default function AuthPage() {
           {message}
         </p>
       )}
+    </div>
+  );
+}
+
+function PrivacyNote() {
+  return (
+    <div className="flex gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-50">
+      <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald-200" />
+      <p>
+        Privacy note: we only use your details to run FanBrain AI, save your picks, and power the fun AI features.
+        We won&apos;t sell your data or use it for unrelated personal purposes.
+      </p>
     </div>
   );
 }
