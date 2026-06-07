@@ -31,8 +31,15 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageType, setMessageType] = useState<Message['type']>('success');
+  const [linkError] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error === 'link_expired') return 'That sign-in link has expired. Enter your email to get a new one.';
+    if (error === 'invalid_link') return 'That sign-in link was invalid. Please try signing in again.';
+    return null;
+  });
+  const [message, setMessage] = useState<string | null>(linkError);
+  const [messageType, setMessageType] = useState<Message['type']>(linkError ? 'error' : 'success');
 
   function showMessage(nextMessage: Message) {
     setMessageType(nextMessage.type);
