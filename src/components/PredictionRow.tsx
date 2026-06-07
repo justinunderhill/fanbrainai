@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import { TeamFlag } from '@/components/TeamFlag';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { formatKickoff } from '@/lib/utils';
 
@@ -39,7 +40,7 @@ export function PredictionRow({
 
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
-          <div className="text-2xl">{match.home_team.emoji_flag}</div>
+          <TeamFlag team={match.home_team} size="sm" />
           <h3 className="truncate font-bold">{match.home_team.name}</h3>
         </div>
         <div className="text-center">
@@ -52,7 +53,9 @@ export function PredictionRow({
           )}
         </div>
         <div className="min-w-0 text-right">
-          <div className="text-2xl">{match.away_team.emoji_flag}</div>
+          <div className="ml-auto w-fit">
+            <TeamFlag team={match.away_team} size="sm" />
+          </div>
           <h3 className="truncate font-bold">{match.away_team.name}</h3>
         </div>
       </div>

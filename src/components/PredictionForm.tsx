@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
+import { TeamFlag } from '@/components/TeamFlag';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
 import { getOutcome } from '@/lib/utils';
@@ -238,8 +239,8 @@ export function PredictionForm({
       </p>
 
       <div className="grid grid-cols-2 gap-4">
-        <ScoreStepper label={match.home_team.name} emoji={match.home_team.emoji_flag} value={homeScore} onChange={setHomeScore} />
-        <ScoreStepper label={match.away_team.name} emoji={match.away_team.emoji_flag} value={awayScore} onChange={setAwayScore} />
+        <ScoreStepper team={match.home_team} value={homeScore} onChange={setHomeScore} />
+        <ScoreStepper team={match.away_team} value={awayScore} onChange={setAwayScore} />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -281,22 +282,21 @@ export function PredictionForm({
 }
 
 function ScoreStepper({
-  label,
-  emoji,
+  team,
   value,
   onChange,
 }: {
-  label: string;
-  emoji?: string | null;
+  team: MatchWithTeams['home_team'];
   value: number;
   onChange: (next: number) => void;
 }) {
   const clamp = (next: number) => Math.max(0, Math.min(15, next));
+  const label = team.name;
 
   return (
     <div className="space-y-2">
-      <span className="flex items-center gap-1.5 text-sm text-gray-300">
-        {emoji && <span aria-hidden>{emoji}</span>}
+      <span className="flex min-w-0 items-center gap-2 text-sm text-gray-300">
+        <TeamFlag team={team} size="sm" />
         <span className="truncate">{label}</span>
       </span>
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-gray-950 p-2">

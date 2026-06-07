@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
+import { TeamFlag } from '@/components/TeamFlag';
 import type { MatchWithTeams } from '@/lib/types';
 import { formatKickoff } from '@/lib/utils';
 
@@ -25,8 +26,8 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
       </div>
       <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
-          <div className="mb-2 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-200 group-hover:scale-110">
-            {match.home_team.emoji_flag}
+          <div className="mb-2 transition-transform duration-200 group-hover:scale-110">
+            <TeamFlag team={match.home_team} size="md" />
           </div>
           <h3 className="truncate font-black">{match.home_team.name}</h3>
         </div>
@@ -34,8 +35,8 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
           {score}
         </div>
         <div className="min-w-0 text-right">
-          <div className="mb-2 ml-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-200 group-hover:scale-110">
-            {match.away_team.emoji_flag}
+          <div className="mb-2 ml-auto w-fit transition-transform duration-200 group-hover:scale-110">
+            <TeamFlag team={match.away_team} size="md" />
           </div>
           <h3 className="truncate font-black">{match.away_team.name}</h3>
         </div>
