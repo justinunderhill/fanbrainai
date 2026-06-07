@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { BrainCircuit, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
 import { SetupNotice } from '@/components/SetupNotice';
+import { TeamFlag } from '@/components/TeamFlag';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams } from '@/lib/types';
@@ -58,8 +59,13 @@ export default async function Home() {
           {featuredMatch && (
             <div className="mt-8 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-gray-200 backdrop-blur">
               <Trophy size={17} className="shrink-0 text-amber-200" />
-              <span className="truncate font-bold">
-                Next up: {featuredMatch.home_team.name} vs {featuredMatch.away_team.name}
+              <span className="inline-flex min-w-0 items-center gap-2 font-bold">
+                <span className="shrink-0">Next up:</span>
+                <TeamFlag team={featuredMatch.home_team} size="sm" />
+                <span className="truncate">{featuredMatch.home_team.name}</span>
+                <span className="shrink-0 text-gray-400">vs</span>
+                <TeamFlag team={featuredMatch.away_team} size="sm" />
+                <span className="truncate">{featuredMatch.away_team.name}</span>
               </span>
             </div>
           )}

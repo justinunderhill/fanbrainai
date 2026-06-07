@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
 
-type AuthMode = 'magic' | 'password';
 type Message = {
   type: 'success' | 'error';
   text: string;
@@ -26,43 +25,23 @@ function getRedirectTarget() {
 
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageType, setMessageType] = useState<Message['type']>('success');
+  const [linkError] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error === 'link_expired') return 'That link has expired. Please sign in again.';
+    if (error === 'invalid_link') return 'That link was invalid. Please sign in again.';
+    return null;
+  });
+  const [message, setMessage] = useState<string | null>(linkError);
+  const [messageType, setMessageType] = useState<Message['type']>(linkError ? 'error' : 'success');
 
   function showMessage(nextMessage: Message) {
     setMessageType(nextMessage.type);
     setMessage(nextMessage.text);
-  }
-
-  async function sendMagicLink() {
-    setLoading(true);
-    setMessage(null);
-
-    try {
-      const supabase = createClient();
-      const redirectTarget = getRedirectTarget();
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(redirectTarget)}`,
-        },
-      });
-      showMessage(error
-        ? { type: 'error', text: error.message }
-        : { type: 'success', text: 'Check your email for the sign-in link.' });
-    } catch (error) {
-      showMessage({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Could not start sign-in.',
-      });
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function signInWithPassword() {
@@ -103,7 +82,6 @@ export default function AuthPage() {
         password,
         options: {
           data: { display_name: displayName || undefined },
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(redirectTarget)}`,
         },
       });
 
@@ -132,22 +110,7 @@ export default function AuthPage() {
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/[0.03] p-6">
       <h1 className="text-3xl font-black">Sign in</h1>
-      <div className="mt-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-gray-950 p-1">
-        <button
-          type="button"
-          onClick={() => setMode('password')}
-          className={`chip rounded-xl px-3 py-2 text-sm font-bold ${mode === 'password' ? 'bg-emerald-400 text-gray-950 shadow-glow-strong' : 'text-gray-300 hover:text-white'}`}
-        >
-          Password
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('magic')}
-          className={`chip rounded-xl px-3 py-2 text-sm font-bold ${mode === 'magic' ? 'bg-emerald-400 text-gray-950 shadow-glow-strong' : 'text-gray-300 hover:text-white'}`}
-        >
-          Magic link
-        </button>
-      </div>
+      <p className="mt-2 text-sm text-gray-400">New here? Pick a password and hit Sign up — you&apos;re in instantly.</p>
 
       <div className="mt-5 space-y-4">
         <label className="block space-y-2">
@@ -162,62 +125,46 @@ export default function AuthPage() {
           />
         </label>
 
-        {mode === 'password' ? (
-          <>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-gray-300">Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                autoComplete="current-password"
-                className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
-              />
-            </label>
-            <label className="block space-y-2">
-              <span className="text-sm font-bold text-gray-300">Display name</span>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Optional for sign-up"
-                autoComplete="nickname"
-                className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
-              />
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={signInWithPassword}
-                className="btn btn-primary px-5 py-3"
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={signUpWithPassword}
-                className="btn btn-ghost px-5 py-3"
-              >
-                Sign up
-              </button>
-            </div>
-            <PrivacyNote />
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={sendMagicLink}
-              className="btn btn-primary w-full px-5 py-3"
-            >
-              Send magic link
-            </button>
-            <PrivacyNote />
-          </>
-        )}
+        <label className="block space-y-2">
+          <span className="text-sm font-bold text-gray-300">Password</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimum 6 characters"
+            autoComplete="current-password"
+            className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
+          />
+        </label>
+        <label className="block space-y-2">
+          <span className="text-sm font-bold text-gray-300">Display name</span>
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Optional for sign-up"
+            autoComplete="nickname"
+            className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
+          />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={signInWithPassword}
+            className="btn btn-primary px-5 py-3"
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={signUpWithPassword}
+            className="btn btn-ghost px-5 py-3"
+          >
+            Sign up
+          </button>
+        </div>
+        <PrivacyNote />
       </div>
 
       {message && (
