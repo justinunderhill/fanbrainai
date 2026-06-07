@@ -8,6 +8,7 @@ import { AuthNavLink } from '@/components/AuthNavLink';
 
 const NAV_LINKS = [
   { href: '/matches', label: 'Matches' },
+  { href: '/predictions', label: 'My Picks' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/profile', label: 'Profile' },
 ];
