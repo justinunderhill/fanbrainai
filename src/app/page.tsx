@@ -77,7 +77,7 @@ export default async function Home() {
         <div className="mb-5 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-black">Upcoming matches</h2>
-            <p className="text-gray-400">Starter data is included. Replace with a full fixture API sync when ready.</p>
+            <p className="text-gray-400">Make your picks before kickoff and climb the leaderboard.</p>
           </div>
           <Link href="/matches" className="text-sm font-bold text-emerald-300">See all</Link>
         </div>
