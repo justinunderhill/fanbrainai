@@ -34,4 +34,5 @@ export type Prediction = {
   points_awarded: number;
   ai_verdict: string | null;
   ai_roast: string | null;
+  ai_debrief: string | null;
 };

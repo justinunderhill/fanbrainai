@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import { DebriefButton } from '@/components/DebriefButton';
 import { TeamFlag } from '@/components/TeamFlag';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { formatKickoff } from '@/lib/utils';
@@ -91,6 +92,18 @@ export function PredictionRow({
 
       {prediction.user_reason && (
         <p className="mt-3 text-sm text-gray-400">&ldquo;{prediction.user_reason}&rdquo;</p>
+      )}
+
+      {isFinal && (
+        <div className="mt-4 border-t border-white/10 pt-4">
+          {prediction.ai_debrief && (
+            <div className="mb-3 rounded-3xl border border-sky-400/30 bg-sky-400/10 p-4">
+              <p className="text-sm font-bold text-sky-200">AI Debrief</p>
+              <p className="mt-2 text-gray-100">{prediction.ai_debrief}</p>
+            </div>
+          )}
+          <DebriefButton predictionId={prediction.id} hasDebrief={Boolean(prediction.ai_debrief)} />
+        </div>
       )}
     </div>
   );
