@@ -12,6 +12,7 @@ This is an unofficial fan engagement project. Do not use official tournament mar
 - AI route handlers for verdicts, roasts, debriefs, and fan profiles
 - Prediction scoring logic
 - Leaderboard view
+- Post-result recap ("return moment") with inline AI debriefs and rank movement
 - `AGENTS.md` for Codex / Claude Code collaboration
 - Placeholder fixture import script
 
@@ -81,6 +82,35 @@ Magic links remain available from the `Magic link` tab and still use `/auth/conf
 - Wrong outcome: 0 points
 
 AI never awards points. `src/lib/scoring.ts` is the deterministic source of truth.
+
+## Post-result recap ("return moment")
+
+> **Scope note:** this is an enhancement added after the original MVP. The MVP shipped with
+> silent background scoring and a manual, per-pick "Get AI debrief" button on *My Picks*. This
+> feature surfaces the payoff automatically when a fan returns after their matches settle.
+
+When predictions settle (the sync job flips a match to `final` and writes `points_awarded`), a
+returning fan is greeted on the home page with a recap instead of having to go hunting for results:
+
+- **Recap card** (`src/components/ResultsRecap.tsx`, mounted in `src/app/page.tsx`) — shows points
+  banked this round and one row per newly-settled pick (final score vs. their call + points badge).
+- **Inline AI debrief** — for each newly-settled pick without a debrief, it calls the existing
+  `POST /api/ai/debrief` lazily (sequentially, to respect that route's per-user rate limiter) and
+  renders the text as it arrives. Persisted debriefs show instantly; failures fall back to a link to
+  the pick (where the original manual button still lives in `src/components/PredictionRow.tsx`).
+- **Rank movement** (`src/components/YourRank.tsx`, mounted in `src/app/leaderboard/page.tsx`) — a
+  "You're #N · ↑/↓ since you last checked" banner on the leaderboard.
+- **Exact-score celebration** — a CSS-only confetti burst (no dependency; `confetti` keyframe in
+  `tailwind.config.ts`) fires once when any newly-settled pick is an exact score.
+
+### "Since last seen" tracking (no schema change)
+
+Detecting "settled since your last visit" and "rank movement since last check" is anchored
+**client-side in `localStorage`** via `src/lib/recap-store.ts`, read through `useSyncExternalStore`
+so components derive state during render. This was a deliberate **zero-DDL** choice — it ships with
+no migration and suits a friends/family audience. The only tradeoff is per-device state (seen/rank
+are not synced across a user's devices). Future upgrade path if cross-device sync is ever wanted:
+add a `users.last_recap_seen_at` column and read/write it server-side instead.
 
 ## Fixture data
 
