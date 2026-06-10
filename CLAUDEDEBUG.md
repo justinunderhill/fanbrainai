@@ -130,3 +130,59 @@ After getting the verdict, the form writes it back with `.update({ ai_verdict })
 2. Auth-gate `verdict` + `roast` routes. **Security/cost.**
 3. Delete all `console.info` debug logging + the `authUser ?? sessionUser ?? auth.user` fallback.
 4. Once 1–3 land, re-evaluate whether the client-only `PredictionAuthGate` is still needed or if the simpler server gate can return.
+
+---
+
+# Addendum — Post-result "return moment" loop
+
+**Date:** 2026-06-10
+**Branch:** `main` (commits `1777de3` feature, `7fbd8f0` README docs)
+**Scope:** Enhancement **beyond the original MVP**. The MVP shipped silent background scoring and a
+manual, per-pick "Get AI debrief" button on *My Picks*. This surfaces the payoff automatically when a
+fan returns after matches settle. Product docs live in `README.md` → "Post-result recap".
+
+## What shipped
+
+- **`src/components/ResultsRecap.tsx`** (client) — mounted at the top of `src/app/page.tsx`. Greets a
+  returning fan with points banked this round + one row per newly-settled pick (final score vs. their
+  call + points badge). Renders nothing when there's nothing new.
+- **Inline lazy AI debrief** — for newly-settled picks without a debrief, calls the existing
+  `POST /api/ai/debrief` **sequentially** (one at a time) to respect that route's 6/min per-user
+  limiter; renders text as it arrives, with a manual-button fallback link on failure. After
+  generating it `router.refresh()`es so server components pick up the persisted debrief/points.
+- **`src/components/YourRank.tsx`** (client) — mounted in `src/app/leaderboard/page.tsx`. "You're #N ·
+  ↑/↓ since you last checked" banner.
+- **Exact-score confetti** — CSS-only, no dependency (`confetti` keyframe in `tailwind.config.ts`).
+- **`src/lib/recap-store.ts`** — localStorage anchor for "seen pick ids" + "last rank", exposed as a
+  `useSyncExternalStore` source. **Shared `pointsBadge`** extracted from `PredictionRow` to
+  `src/lib/scoring.ts`.
+
+## Tooling
+
+`typecheck`, `lint`, and `next build` all pass clean.
+
+## Review notes / known tradeoffs (none blocking)
+
+- **Zero-DDL by design (P2 / accepted):** "since last seen" is client-side localStorage, so seen/rank
+  state is **per-device** and not synced across a user's devices. Deliberate — ships with no Supabase
+  migration and suits the friends/family audience. Upgrade path documented: add
+  `users.last_recap_seen_at` and move read/write server-side.
+- **`useSyncExternalStore` instead of an effect (rationale):** Next 16's `react-hooks/set-state-in-effect`
+  rule forbids the "read localStorage in `useEffect` → `setState`" pattern. The store reads through
+  `useSyncExternalStore` so components derive state during render. `getServerSnapshot` returns an empty
+  state, so the recap/banner are intentionally absent during SSR + initial hydration, then appear once
+  the client snapshot resolves (no hydration mismatch).
+- **`YourRank` delta is first-paint (P2 / cosmetic):** the up/down delta is computed against the stored
+  `lastRank`, then the effect overwrites `lastRank` to the current rank. On a subsequent client
+  re-render the delta collapses to "holding steady." Fine for this server-rendered page (no client
+  interactivity to trigger re-renders); worth knowing if that page gains client state later.
+- **Rank derivation does a full leaderboard scan (P2 / scale):** both `getRecap()` (home) and the
+  leaderboard page fetch the full ordered `leaderboard` view and `findIndex` the user to get true rank
+  (so it's correct outside the top 50). Fine at friends/family scale; if the user base grows, replace
+  with a count query (`count(*) where total_points > mine`).
+- **Lazy debrief cost (by request):** debriefs generate only on view (chosen over auto-at-settle), so
+  no OpenAI spend for fans who never return. A fan returning to many newly-settled picks at once could
+  approach the 6/min limiter; the sequential loop + per-pick fallback link handle that gracefully.
+- **Unverifiable pre-kickoff:** with no settled picks before the 2026-06-11 kickoff, the loop couldn't
+  be eyeballed locally; it only renders once real results settle. Verification deferred to real
+  fixtures.
