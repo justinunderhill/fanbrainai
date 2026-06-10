@@ -1,5 +1,6 @@
 import { Medal, Sparkles, Trophy } from 'lucide-react';
 import { SetupNotice } from '@/components/SetupNotice';
+import { YourRank } from '@/components/YourRank';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
@@ -22,11 +23,27 @@ function rankTone(index: number) {
 export default async function LeaderboardPage() {
   const supabaseConfigured = hasSupabasePublicEnv();
   let rows: Row[] = [];
+  let me: { rank: number | null; row: Row } | null = null;
 
   if (supabaseConfigured) {
     const supabase = await createClient();
     const { data } = await supabase.from('leaderboard').select('*').order('total_points', { ascending: false }).limit(50);
     rows = (data ?? []) as Row[];
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      const { data: mineData } = await supabase.from('leaderboard').select('*').eq('user_id', auth.user.id).maybeSingle();
+      const mine = mineData as Row | null;
+      if (mine) {
+        // True rank may sit outside the top 50, so derive it from the full ordering.
+        const { data: standings } = await supabase
+          .from('leaderboard')
+          .select('user_id')
+          .order('total_points', { ascending: false });
+        const index = (standings ?? []).findIndex((r) => r.user_id === auth.user!.id);
+        me = { rank: index >= 0 ? index + 1 : null, row: mine };
+      }
+    }
   }
   const podium = rows.slice(0, 3);
 
@@ -51,6 +68,14 @@ export default async function LeaderboardPage() {
       </section>
 
       {!supabaseConfigured && <SetupNotice />}
+
+      {me && (
+        <YourRank
+          rank={me.rank}
+          totalPoints={me.row.total_points}
+          displayName={me.row.display_name ?? 'You'}
+        />
+      )}
 
       {podium.length > 0 && (
         <section className="grid gap-3 md:grid-cols-3">

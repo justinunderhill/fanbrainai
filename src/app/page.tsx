@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { BrainCircuit, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
+import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
 import { SetupNotice } from '@/components/SetupNotice';
 import { TeamFlag } from '@/components/TeamFlag';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
-import type { MatchWithTeams } from '@/lib/types';
+import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 async function getMatches() {
   const supabase = await createClient();
@@ -17,13 +18,45 @@ async function getMatches() {
   return (data ?? []) as MatchWithTeams[];
 }
 
+// Settled picks + current leaderboard rank for the signed-in fan's "return moment" recap.
+async function getRecap(): Promise<{ settled: RecapItem[]; rank: number | null } | null> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+
+  const { data: predictionData } = await supabase.from('predictions').select('*').eq('user_id', auth.user.id);
+  const predictions = (predictionData ?? []) as Prediction[];
+  if (predictions.length === 0) return { settled: [], rank: null };
+
+  const { data: matchData } = await supabase
+    .from('matches_with_teams')
+    .select('*')
+    .in('id', predictions.map((p) => p.match_id));
+  const matchesById = new Map(((matchData ?? []) as MatchWithTeams[]).map((m) => [m.id, m]));
+
+  const settled = predictions
+    .map((prediction) => ({ prediction, match: matchesById.get(prediction.match_id) }))
+    .filter((r): r is RecapItem => Boolean(r.match) && r.match!.status === 'final')
+    .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime());
+
+  const { data: standings } = await supabase
+    .from('leaderboard')
+    .select('user_id, total_points')
+    .order('total_points', { ascending: false });
+  const index = (standings ?? []).findIndex((row) => row.user_id === auth.user!.id);
+
+  return { settled, rank: index >= 0 ? index + 1 : null };
+}
+
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
   const matches = supabaseConfigured ? await getMatches() : [];
   const featuredMatch = matches[0];
+  const recap = supabaseConfigured ? await getRecap() : null;
 
   return (
     <div className="space-y-10">
+      {recap && recap.settled.length > 0 && <ResultsRecap settled={recap.settled} rank={recap.rank} />}
       <section className="stadium-hero relative overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-glow sm:p-8 md:p-12">
         <div className="pitch-lines pointer-events-none absolute inset-0 opacity-60" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-emerald-400/18 to-transparent" />

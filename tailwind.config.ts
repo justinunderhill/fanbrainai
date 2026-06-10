@@ -29,12 +29,17 @@ const config: Config = {
           '0%': { transform: 'translateX(-130%) skewX(-12deg)' },
           '100%': { transform: 'translateX(230%) skewX(-12deg)' },
         },
+        confetti: {
+          '0%': { opacity: '1', transform: 'translateY(0) rotate(0deg)' },
+          '100%': { opacity: '0', transform: 'translateY(240px) rotate(540deg)' },
+        },
       },
       animation: {
         pop: 'pop 0.32s ease-out',
         'pop-in': 'pop-in 0.36s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'slide-up': 'slide-up 0.3s ease-out',
         'glow-pulse': 'glow-pulse 2.4s ease-in-out infinite',
+        confetti: 'confetti 1.2s ease-out forwards',
       },
     },
   },
