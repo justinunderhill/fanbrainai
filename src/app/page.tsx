@@ -10,12 +10,13 @@ import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 async function getMatches() {
   const supabase = await createClient();
-  // Only matches that haven't kicked off yet, soonest first — otherwise the
-  // earliest game of the tournament stays pinned as "Next up" after it's played.
+  // Upcoming + in-progress matches, soonest first — so the homepage keeps a
+  // live game featured until it's final instead of pinning the tournament's
+  // first match as "Next up" forever. Live games sort ahead of scheduled ones.
   const { data } = await supabase
     .from('matches_with_teams')
     .select('*')
-    .gt('kickoff_time', new Date().toISOString())
+    .in('status', ['scheduled', 'live'])
     .order('kickoff_time', { ascending: true })
     .limit(6);
   return (data ?? []) as MatchWithTeams[];
