@@ -60,7 +60,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
             <h1 className="mt-3 truncate text-2xl font-black">{match.away_team.name}</h1>
           </div>
         </div>
-        <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)} · {match.venue ?? 'Venue TBC'}</p>
+        <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)}{match.venue ? ` · ${match.venue}` : ''}</p>
       </section>
 
       <PredictionAuthGate match={match} initialPrediction={initialPrediction} />

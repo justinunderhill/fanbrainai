@@ -51,10 +51,12 @@ export function MatchCard({ match, predicted = false }: { match: MatchWithTeams;
       </div>
       <div className="relative mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/10 pt-4 text-sm text-gray-400">
         <span>{formatKickoff(match.kickoff_time)}</span>
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          <MapPin size={14} className="shrink-0 text-amber-200/80" />
-          <span className="truncate">{match.venue ?? 'Venue TBC'}</span>
-        </span>
+        {match.venue && (
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <MapPin size={14} className="shrink-0 text-amber-200/80" />
+            <span className="truncate">{match.venue}</span>
+          </span>
+        )}
       </div>
     </Link>
   );

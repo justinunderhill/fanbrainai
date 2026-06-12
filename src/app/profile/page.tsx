@@ -82,7 +82,7 @@ export default async function ProfilePage() {
 
           <div className="rounded-3xl border border-white/10 bg-gray-950/55 p-5 shadow-glow">
             <div className="mb-4 flex items-center gap-2">
-              <Gauge size={18} className="text-emerald-300" />
+              <Gauge size={18} className="shrink-0 text-emerald-300" />
               <h3 className="font-black">Prediction traits</h3>
             </div>
             <div className="space-y-3">
