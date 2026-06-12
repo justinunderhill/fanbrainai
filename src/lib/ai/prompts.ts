@@ -1,4 +1,5 @@
 import type { MatchWithTeams, PredictionStyle } from '@/lib/types';
+import { formatKickoff } from '@/lib/utils';
 
 export function buildVerdictPrompt(params: {
   match: MatchWithTeams;
@@ -14,7 +15,7 @@ Write a 40-80 word verdict on this fan prediction. Be witty, analytical, and fun
 Match: ${params.match.home_team.name} vs ${params.match.away_team.name}
 Stage: ${params.match.stage}
 Venue: ${params.match.venue ?? 'Unknown'}
-Kickoff: ${params.match.kickoff_time}
+Kickoff: ${formatKickoff(params.match.kickoff_time)} (SAST)
 Prediction: ${params.match.home_team.name} ${params.predictedHomeScore} - ${params.predictedAwayScore} ${params.match.away_team.name}
 Prediction style: ${params.predictionStyle}
 Fan reason: ${params.userReason || 'No reason supplied'}
