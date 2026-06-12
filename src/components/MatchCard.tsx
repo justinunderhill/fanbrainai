@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { Check, MapPin } from 'lucide-react';
 import { TeamFlag } from '@/components/TeamFlag';
 import type { MatchWithTeams } from '@/lib/types';
 import { formatKickoff } from '@/lib/utils';
 
-export function MatchCard({ match }: { match: MatchWithTeams }) {
+export function MatchCard({ match, predicted = false }: { match: MatchWithTeams; predicted?: boolean }) {
   const score = match.status === 'final' || match.status === 'live'
     ? `${match.home_score ?? 0} - ${match.away_score ?? 0}`
     : 'vs';
@@ -20,9 +20,17 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
       <span className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full border border-white/10 opacity-40" />
       {/* Shine sweep on hover */}
       <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:animate-[shine_0.9s_ease-out] group-hover:opacity-100" />
-      <div className="relative mb-4 flex items-center justify-between text-xs uppercase tracking-wide text-gray-400">
+      <div className="relative mb-4 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-gray-400">
         <span className="font-bold text-gray-300">{match.stage}</span>
-        <span className={`rounded-full border px-3 py-1 font-black ${statusClass}`}>{match.status}</span>
+        <span className="flex items-center gap-2">
+          {predicted && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-1 font-black text-emerald-100">
+              <Check size={12} strokeWidth={3} />
+              Predicted
+            </span>
+          )}
+          <span className={`rounded-full border px-3 py-1 font-black ${statusClass}`}>{match.status}</span>
+        </span>
       </div>
       <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">

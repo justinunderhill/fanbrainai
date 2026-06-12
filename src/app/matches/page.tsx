@@ -7,6 +7,7 @@ import type { MatchWithTeams } from '@/lib/types';
 export default async function MatchesPage() {
   const supabaseConfigured = hasSupabasePublicEnv();
   let matches: MatchWithTeams[] = [];
+  let predictedMatchIds = new Set<string>();
 
   if (supabaseConfigured) {
     const supabase = await createClient();
@@ -15,6 +16,17 @@ export default async function MatchesPage() {
       .select('*')
       .order('kickoff_time', { ascending: true });
     matches = (data ?? []) as MatchWithTeams[];
+
+    // Mark which matches the signed-in user has already predicted so the grid
+    // can flag them. RLS scopes this to the user's own rows.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: predictions } = await supabase
+        .from('predictions')
+        .select('match_id')
+        .eq('user_id', user.id);
+      predictedMatchIds = new Set((predictions ?? []).map((p) => p.match_id as string));
+    }
   }
 
   return (
@@ -25,7 +37,7 @@ export default async function MatchesPage() {
       </div>
       {!supabaseConfigured && <SetupNotice />}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {matches.map((match) => <MatchCard key={match.id} match={match} />)}
+        {matches.map((match) => <MatchCard key={match.id} match={match} predicted={predictedMatchIds.has(match.id)} />)}
       </div>
     </div>
   );

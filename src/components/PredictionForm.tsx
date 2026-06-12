@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { TeamFlag } from '@/components/TeamFlag';
@@ -60,6 +61,9 @@ export function PredictionForm({
   const [aiRoast, setAiRoast] = useState<string | null>(initialPrediction?.ai_roast ?? null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Once a pick is saved we surface "what's next" navigation so the user isn't
+  // stranded on this page with only the top nav to escape.
+  const [saved, setSaved] = useState(isEditing);
   const [renderedAt] = useState(() => Date.now());
   // The score/style the current verdict was generated for, so an edit that only
   // touches the reason text doesn't burn an AI call (and the rate limit).
@@ -126,6 +130,8 @@ export function PredictionForm({
       setLoading(false);
       return;
     }
+
+    setSaved(true);
 
     // Only (re)generate the AI verdict when the score or style actually changed.
     // Editing just the reason text keeps the existing verdict and saves a call.
@@ -225,6 +231,13 @@ export function PredictionForm({
         {initialPrediction.user_reason && <p className="mt-3 text-sm text-amber-100/90">&ldquo;{initialPrediction.user_reason}&rdquo;</p>}
         {aiVerdict && <div className="mt-4 rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
         {aiRoast && <div className="mt-4 rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
+        <div className="mt-5 flex flex-wrap gap-3 border-t border-amber-400/20 pt-5">
+          <Link href="/matches" className="btn btn-primary px-5 py-3">
+            Pick another match
+            <ArrowRight size={18} />
+          </Link>
+          <Link href="/predictions" className="btn btn-ghost px-5 py-3">View your predictions</Link>
+        </div>
       </section>
     );
   }
@@ -277,6 +290,16 @@ export function PredictionForm({
       {message && <p className="mt-4 animate-slide-up text-sm text-gray-300">{message}</p>}
       {aiVerdict && <div className="mt-4 animate-pop-in rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
       {aiRoast && <div className="mt-4 animate-pop-in rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
+
+      {saved && (
+        <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-5 animate-slide-up">
+          <Link href="/matches" className="btn btn-primary px-5 py-3">
+            Pick another match
+            <ArrowRight size={18} />
+          </Link>
+          <Link href="/predictions" className="btn btn-ghost px-5 py-3">View your predictions</Link>
+        </div>
+      )}
     </section>
   );
 }
