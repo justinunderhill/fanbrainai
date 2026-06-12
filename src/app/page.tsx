@@ -10,9 +10,12 @@ import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 async function getMatches() {
   const supabase = await createClient();
+  // Only matches that haven't kicked off yet, soonest first — otherwise the
+  // earliest game of the tournament stays pinned as "Next up" after it's played.
   const { data } = await supabase
     .from('matches_with_teams')
     .select('*')
+    .gt('kickoff_time', new Date().toISOString())
     .order('kickoff_time', { ascending: true })
     .limit(6);
   return (data ?? []) as MatchWithTeams[];
