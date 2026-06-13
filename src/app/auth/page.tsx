@@ -164,6 +164,17 @@ function AuthPageInner() {
       <h1 className="text-3xl font-black">Sign in</h1>
       <p className="mt-2 text-sm text-gray-400">New here? Pick a password and hit Sign up — you&apos;re in instantly.</p>
 
+      {message && (
+        <p className={`mt-4 animate-slide-up rounded-2xl border px-4 py-3 text-sm ${
+          messageType === 'error'
+            ? 'border-red-400/30 bg-red-400/10 text-red-100'
+            : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
+        }`}
+        >
+          {message}
+        </p>
+      )}
+
       <div className="mt-5 space-y-4">
         <label className="block space-y-2">
           <span className="text-sm font-bold text-gray-300">Email</span>
@@ -226,17 +237,6 @@ function AuthPageInner() {
         </div>
         <PrivacyNote />
       </div>
-
-      {message && (
-        <p className={`mt-4 animate-slide-up rounded-2xl border px-4 py-3 text-sm ${
-          messageType === 'error'
-            ? 'border-red-400/30 bg-red-400/10 text-red-100'
-            : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
-        }`}
-        >
-          {message}
-        </p>
-      )}
     </div>
   );
 }
