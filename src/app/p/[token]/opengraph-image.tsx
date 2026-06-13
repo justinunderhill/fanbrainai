@@ -1,6 +1,11 @@
 import { ImageResponse } from 'next/og';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+// Edge runtime: dynamic next/og ImageResponse routes fail with "failed to pipe response"
+// when rendered per-request on the Node serverless runtime. The admin client uses only
+// fetch, so it runs fine on edge.
+export const runtime = 'edge';
+
 export const alt = 'FanBrain fan personality';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -83,6 +88,14 @@ export default async function Image({ params }: { params: Promise<{ token: strin
         </div>
       </div>
     ),
-    size,
+    {
+      ...size,
+      headers: {
+        // Cacheable so social scrapers (WhatsApp/X/Facebook) fetch reliably; short enough
+        // that a regenerated profile refreshes within the hour. Users can force-bust with
+        // a ?v= query param on the share URL.
+        'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    },
   );
 }
