@@ -11,18 +11,20 @@ export function ShareProfileButton({
   personalityType: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const [client, setClient] = useState<{ origin: string; canNativeShare: boolean }>({ origin: '', canNativeShare: false });
-  const { origin, canNativeShare } = client;
+  const [client, setClient] = useState<{ base: string; canNativeShare: boolean }>({ base: '', canNativeShare: false });
+  const { base, canNativeShare } = client;
 
-  // Read browser-only values after mount so the displayed URL matches the real origin
-  // (prod / preview / localhost) without a hydration mismatch. This is the documented
-  // exception to set-state-in-effect: syncing a client-only external value into React.
+  // Prefer the configured site URL (NEXT_PUBLIC_SITE_URL, e.g. https://fanbrainai.com in
+  // prod) so share links use the canonical domain. Fall back to the live origin for local
+  // dev and preview deploys, where the env var isn't set. Resolved after mount so the
+  // displayed URL is correct without a hydration mismatch.
   useEffect(() => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '');
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setClient({ origin: window.location.origin, canNativeShare: !!navigator.share });
+    setClient({ base: siteUrl || window.location.origin, canNativeShare: !!navigator.share });
   }, []);
 
-  const shareUrl = `${origin}/p/${token}`;
+  const shareUrl = `${base}/p/${token}`;
   const shareText = `I'm a ${personalityType} on FanBrain — find your World Cup fan personality:`;
 
   async function handleNativeShare() {
@@ -58,7 +60,7 @@ export function ShareProfileButton({
       {/* Read-only link with inline copy — the clean, expected pattern. */}
       <div className="mt-4 flex items-center gap-2 rounded-full border border-white/10 bg-gray-950/60 py-1.5 pl-4 pr-1.5">
         <Link2 size={16} className="shrink-0 text-gray-400" />
-        <span className="flex-1 truncate text-sm text-gray-300">{origin ? `${origin}/p/${token}` : `/p/${token}`}</span>
+        <span className="flex-1 truncate text-sm text-gray-300">{base ? shareUrl : `/p/${token}`}</span>
         <button onClick={copyLink} className="btn btn-primary shrink-0 px-4 py-2 text-sm">
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Copied' : 'Copy'}

@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { SiteHeader } from '@/components/SiteHeader';
-
-// Absolute base for OG/Twitter image URLs so shared links unfurl correctly.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://fanbrainai.vercel.app';
+import { SITE_URL } from '@/lib/site-url';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  // Absolute base that all relative metadata URLs (og:image, twitter:image, og:url,
+  // canonical) resolve against, so shared links unfurl correctly.
+  metadataBase: new URL(SITE_URL),
   title: 'FanBrain AI',
   description: 'AI-powered football prediction and fan personality companion.',
 };

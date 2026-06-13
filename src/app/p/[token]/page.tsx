@@ -48,14 +48,18 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const title = `${result.displayName} is a ${result.profile.personality_type} · FanBrain`;
   const description = result.profile.summary;
   const image = { url: `/p/${token}/og`, width: 1200, height: 630, alt: 'FanBrain fan personality' };
+  // Relative URLs resolve against metadataBase (NEXT_PUBLIC_SITE_URL) into absolute links.
+  const path = `/p/${token}`;
 
   return {
     title,
     description,
+    alternates: { canonical: path },
     openGraph: {
       title,
       description,
       type: 'profile',
+      url: path,
       images: [image],
     },
     twitter: {
