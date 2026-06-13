@@ -69,8 +69,13 @@ create table public.fan_profiles (
   loyalty_score int not null check (loyalty_score between 0 and 100),
   risk_score int not null check (risk_score between 0 and 100),
   summary text not null,
+  -- Unguessable, unlisted share handle. Read server-side via the service-role
+  -- admin client (see /p/[token]); no anon grant is added to this table.
+  share_token uuid not null default gen_random_uuid(),
   updated_at timestamptz not null default now()
 );
+
+create unique index fan_profiles_share_token_key on public.fan_profiles(share_token);
 
 create or replace view public.matches_with_teams as
 select
