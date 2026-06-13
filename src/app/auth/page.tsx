@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
+import { SITE_URL } from '@/lib/site-url';
 
 type Message = {
   type: 'success' | 'error';
@@ -23,19 +24,31 @@ function getRedirectTarget() {
   return fallback;
 }
 
+// `useSearchParams` reads the auth-link `error` param during render, so the
+// banner is seeded into state without a `typeof window` branch (the old source
+// of the hydration mismatch). It must run under a Suspense boundary, which the
+// default export below provides.
+function getLinkError(error: string | null) {
+  if (error === 'link_expired') return 'That link has expired. Please sign in again.';
+  if (error === 'invalid_link') return 'That link was invalid. Please sign in again.';
+  return null;
+}
+
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageInner />
+    </Suspense>
+  );
+}
+
+function AuthPageInner() {
   const router = useRouter();
+  const linkError = getLinkError(useSearchParams().get('error'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [linkError] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    const error = new URLSearchParams(window.location.search).get('error');
-    if (error === 'link_expired') return 'That link has expired. Please sign in again.';
-    if (error === 'invalid_link') return 'That link was invalid. Please sign in again.';
-    return null;
-  });
   const [message, setMessage] = useState<string | null>(linkError);
   const [messageType, setMessageType] = useState<Message['type']>(linkError ? 'error' : 'success');
 
@@ -64,6 +77,45 @@ export default function AuthPage() {
       showMessage({
         type: 'error',
         text: error instanceof Error ? error.message : 'Could not sign in.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function sendPasswordReset() {
+    if (!email) {
+      showMessage({ type: 'error', text: 'Enter your email above, then tap "Forgot password?".' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const supabase = createClient();
+      // Use the default Supabase recovery email ({{ .ConfirmationURL }}): it
+      // routes through Supabase's /auth/v1/verify endpoint and redirects back
+      // here with the session in the URL hash, which the update-password page
+      // picks up via onAuthStateChange/getSession. No custom email template
+      // (which would require SMTP) is needed.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${SITE_URL}/auth/update-password`,
+      });
+
+      if (error) {
+        showMessage({ type: 'error', text: error.message });
+        return;
+      }
+
+      showMessage({
+        type: 'success',
+        text: 'Check your email for a link to reset your password.',
+      });
+    } catch (error) {
+      showMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Could not send reset email.',
       });
     } finally {
       setLoading(false);
@@ -136,6 +188,14 @@ export default function AuthPage() {
             className="input-game w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3"
           />
         </label>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={sendPasswordReset}
+          className="text-sm font-semibold text-emerald-300 underline-offset-2 hover:underline disabled:opacity-50"
+        >
+          Forgot password?
+        </button>
         <label className="block space-y-2">
           <span className="text-sm font-bold text-gray-300">Display name</span>
           <input
