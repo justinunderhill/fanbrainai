@@ -1,14 +1,14 @@
 import { ImageResponse } from 'next/og';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-// Edge runtime: dynamic next/og ImageResponse routes fail with "failed to pipe response"
-// when rendered per-request on the Node serverless runtime. The admin client uses only
-// fetch, so it runs fine on edge.
-export const runtime = 'edge';
+// Dynamic OG image as a Route Handler rather than the `opengraph-image` file convention:
+// in this Next version the convention fails on dynamic routes ("failed to pipe response"
+// on Node, empty body on edge). A route handler returns the ImageResponse as a normal
+// Response on the Node runtime, where the admin client already works.
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export const alt = 'FanBrain fan personality';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
+const SIZE = { width: 1200, height: 630 };
 
 const TRAITS = [
   { label: 'Logic', key: 'logic_score', color: '#34d399' },
@@ -17,7 +17,7 @@ const TRAITS = [
   { label: 'Risk', key: 'risk_score', color: '#fbbf24' },
 ] as const;
 
-export default async function Image({ params }: { params: Promise<{ token: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const supabase = createAdminClient();
   const { data: profile } = await supabase
@@ -64,7 +64,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '30px', color: '#cbd5e1' }}>{displayName} is a</div>
+          <div style={{ fontSize: '30px', color: '#cbd5e1' }}>{`${displayName} is a`}</div>
           <div style={{ fontSize: '88px', fontWeight: 800, lineHeight: 1.05, marginTop: '8px', color: '#ffffff' }}>
             {personalityType}
           </div>
@@ -89,7 +89,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       </div>
     ),
     {
-      ...size,
+      ...SIZE,
       headers: {
         // Cacheable so social scrapers (WhatsApp/X/Facebook) fetch reliably; short enough
         // that a regenerated profile refreshes within the hour. Users can force-bust with

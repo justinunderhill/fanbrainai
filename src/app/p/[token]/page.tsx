@@ -47,6 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 
   const title = `${result.displayName} is a ${result.profile.personality_type} · FanBrain`;
   const description = result.profile.summary;
+  const image = { url: `/p/${token}/og`, width: 1200, height: 630, alt: 'FanBrain fan personality' };
 
   return {
     title,
@@ -55,13 +56,13 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
       title,
       description,
       type: 'profile',
-      images: [`/p/${token}/opengraph-image`],
+      images: [image],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [`/p/${token}/opengraph-image`],
+      images: [image],
     },
   };
 }
