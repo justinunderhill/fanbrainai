@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowUp, Loader2, Minus, Sparkles, Trophy, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Flame, Loader2, Minus, Sparkles, Trophy, X } from 'lucide-react';
 import { TeamFlag } from '@/components/TeamFlag';
-import { pointsBadge } from '@/lib/scoring';
+import { SharePredictionButton } from '@/components/SharePredictionButton';
+import { currentStreak, pointsBadge } from '@/lib/scoring';
 import { getServerSnapshot, getSnapshot, persist, subscribe } from '@/lib/recap-store';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
 
@@ -67,6 +68,7 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
 
   const pointsBanked = useMemo(() => newly.reduce((sum, s) => sum + s.prediction.points_awarded, 0), [newly]);
   const hasExact = useMemo(() => newly.some((s) => s.prediction.points_awarded >= 5), [newly]);
+  const streak = useMemo(() => currentStreak(settled), [settled]);
   const rankDelta = rank != null && stored.lastRank != null ? stored.lastRank - rank : null;
 
   if (dismissed || newly.length === 0) return null;
@@ -110,6 +112,12 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
           )}
         </p>
       )}
+      {streak.current >= 2 && (
+        <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-orange-400/40 bg-orange-400/12 px-3 py-1.5 text-sm font-bold text-orange-200">
+          <Flame size={15} /> {streak.current} correct calls in a row
+          {streak.current >= streak.best && streak.best > 2 && <span className="text-orange-100/80">· your best yet</span>}
+        </p>
+      )}
 
       <div className="mt-6 space-y-3">
         {newly.map(({ prediction, match }) => {
@@ -151,6 +159,16 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
                   View debrief →
                 </Link>
               )}
+              <SharePredictionButton
+                token={prediction.share_token}
+                homeTeam={match.home_team.name}
+                awayTeam={match.away_team.name}
+                homeScore={match.home_score ?? 0}
+                awayScore={match.away_score ?? 0}
+                predictedHome={prediction.predicted_home_score}
+                predictedAway={prediction.predicted_away_score}
+                points={prediction.points_awarded}
+              />
             </div>
           );
         })}

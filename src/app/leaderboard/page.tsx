@@ -1,8 +1,21 @@
+import type { Metadata } from 'next';
 import { Medal, Sparkles, Trophy } from 'lucide-react';
+import { CollapsibleShare } from '@/components/CollapsibleShare';
 import { SetupNotice } from '@/components/SetupNotice';
 import { YourRank } from '@/components/YourRank';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+
+const title = 'World Cup leaderboard · FanBrain AI';
+const description = 'These are the sharpest World Cup fan brains. Can you out-predict them?';
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: '/leaderboard' },
+  openGraph: { title, description, url: '/leaderboard', images: [{ url: '/leaderboard/og', width: 1200, height: 630, alt: 'FanBrain leaderboard' }] },
+  twitter: { card: 'summary_large_image', title, description, images: ['/leaderboard/og'] },
+};
 
 type Row = {
   user_id: string;
@@ -58,6 +71,16 @@ export default async function LeaderboardPage() {
             </p>
             <h1 className="text-3xl font-black tracking-tight sm:text-5xl">Leaderboard</h1>
             <p className="mt-3 text-gray-200">Points are deterministic. AI gets to talk. It does not get to score.</p>
+            <CollapsibleShare
+              className="mt-4"
+              buttonLabel="Share the leaderboard"
+              path="/leaderboard"
+              title="FanBrain World Cup leaderboard"
+              heading="Share the leaderboard"
+              blurb="Challenge your group chat to climb the board."
+              shareText="These are the sharpest World Cup fan brains on FanBrain — think you can beat them?"
+              tone="amber"
+            />
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-3xl border border-white/10 bg-gray-950/60 p-3 backdrop-blur">
             <Stat label="Fans" value={rows.length} />
