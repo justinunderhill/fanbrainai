@@ -56,10 +56,15 @@ create table public.predictions (
   ai_verdict text,
   ai_roast text,
   ai_debrief text,
+  -- Unguessable, unlisted share handle for the public /r/[token] page. Read
+  -- server-side via the service-role admin client; no anon grant is added.
+  share_token uuid not null default gen_random_uuid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, match_id)
 );
+
+create unique index predictions_share_token_key on public.predictions(share_token);
 
 create table public.fan_profiles (
   user_id uuid primary key references public.users(id) on delete cascade,

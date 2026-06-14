@@ -35,4 +35,5 @@ export type Prediction = {
   ai_verdict: string | null;
   ai_roast: string | null;
   ai_debrief: string | null;
+  share_token: string;
 };

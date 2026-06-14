@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { DebriefButton } from '@/components/DebriefButton';
+import { SharePredictionButton } from '@/components/SharePredictionButton';
 import { TeamFlag } from '@/components/TeamFlag';
 import { pointsBadge } from '@/lib/scoring';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
@@ -98,6 +99,16 @@ export function PredictionRow({
             </div>
           )}
           <DebriefButton predictionId={prediction.id} hasDebrief={Boolean(prediction.ai_debrief)} />
+          <SharePredictionButton
+            token={prediction.share_token}
+            homeTeam={match.home_team.name}
+            awayTeam={match.away_team.name}
+            homeScore={match.home_score ?? 0}
+            awayScore={match.away_score ?? 0}
+            predictedHome={prediction.predicted_home_score}
+            predictedAway={prediction.predicted_away_score}
+            points={prediction.points_awarded}
+          />
         </div>
       )}
     </div>
