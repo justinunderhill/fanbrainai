@@ -1,0 +1,50 @@
+{
+  "id": "/",
+  "name": "FanBrainAI",
+  "short_name": "FanBrain",
+  "description": "AI-powered football prediction and fan personality companion.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "categories": ["sports", "entertainment", "games"],
+  "theme_color": "#111827",
+  "background_color": "#030712",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/wide",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "FanBrain AI — predict, get AI debriefs, climb the leaderboard"
+    },
+    {
+      "src": "/screenshots/narrow",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "FanBrain AI on mobile"
+    }
+  ]
+}
