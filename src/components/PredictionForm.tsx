@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
+import { PushOptIn } from '@/components/PushOptIn';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { TeamFlag } from '@/components/TeamFlag';
 import { useAuth } from '@/components/AuthProvider';
@@ -64,6 +65,9 @@ export function PredictionForm({
   // Once a pick is saved we surface "what's next" navigation so the user isn't
   // stranded on this page with only the top nav to escape.
   const [saved, setSaved] = useState(isEditing);
+  // Flips true only after a brand-new prediction is saved, which is when we offer
+  // result notifications (PushOptIn self-gates on support + prior dismissal).
+  const [offerPush, setOfferPush] = useState(false);
   const [renderedAt] = useState(() => Date.now());
   // The score/style the current verdict was generated for, so an edit that only
   // touches the reason text doesn't burn an AI call (and the rate limit).
@@ -132,6 +136,8 @@ export function PredictionForm({
     }
 
     setSaved(true);
+    // A new pick (no pre-existing row) is the moment to offer result alerts.
+    if (!existingPrediction) setOfferPush(true);
 
     // Only (re)generate the AI verdict when the score or style actually changed.
     // Editing just the reason text keeps the existing verdict and saves a call.
@@ -300,6 +306,8 @@ export function PredictionForm({
           <Link href="/predictions" className="btn btn-ghost px-5 py-3">View your predictions</Link>
         </div>
       )}
+
+      <PushOptIn active={offerPush} />
     </section>
   );
 }

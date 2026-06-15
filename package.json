@@ -19,13 +19,15 @@
     "openai": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "web-push": "latest"
   },
   "devDependencies": {
     "@serwist/turbopack": "^9.5.11",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/web-push": "latest",
     "autoprefixer": "latest",
     "esbuild": "^0.28.1",
     "eslint": "latest",

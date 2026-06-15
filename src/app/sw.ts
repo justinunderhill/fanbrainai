@@ -89,3 +89,51 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// --- Push notifications (personal result alerts) ---
+// Payload shape matches src/lib/notifications/send-result-notifications.ts.
+type PushPayload = { title: string; body: string; url: string };
+
+self.addEventListener('push', (event) => {
+  let payload: PushPayload;
+  try {
+    payload = event.data?.json() as PushPayload;
+  } catch {
+    payload = { title: 'FanBrain', body: 'Your result is in.', url: '/predictions' };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data as { url?: string } | undefined)?.url ?? '/predictions';
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // Focus an existing FanBrain tab and route it there rather than opening a duplicate.
+      for (const client of clientList) {
+        if ('focus' in client) {
+          await client.focus();
+          if ('navigate' in client) {
+            try {
+              await client.navigate(targetUrl);
+            } catch {
+              // Cross-origin navigate can throw; the focus alone is still useful.
+            }
+          }
+          return;
+        }
+      }
+      await self.clients.openWindow(targetUrl);
+    })(),
+  );
+});
