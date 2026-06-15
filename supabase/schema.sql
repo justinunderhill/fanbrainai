@@ -243,7 +243,10 @@ grant select on public.fan_profiles to authenticated;
 
 grant select, delete on public.push_subscriptions to authenticated;
 grant insert (user_id, endpoint, p256dh, auth, last_used_at) on public.push_subscriptions to authenticated;
-grant update (user_id, p256dh, auth, last_used_at) on public.push_subscriptions to authenticated;
+-- endpoint is included because the subscribe route upserts on conflict (endpoint),
+-- and Postgres checks UPDATE privileges on every column in the DO UPDATE SET list
+-- (even on a first insert that never hits the conflict path).
+grant update (user_id, endpoint, p256dh, auth, last_used_at) on public.push_subscriptions to authenticated;
 
 -- Leaderboard is intentionally public; it exposes display names and aggregate scores only.
 grant select on public.matches_with_teams to anon, authenticated;
