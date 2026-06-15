@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildWorldCupUpserts } from '@/lib/fixtures/football-data';
 import { scorePrediction } from '@/lib/scoring';
+import { sendResultNotifications } from '@/lib/notifications/send-result-notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -111,11 +112,21 @@ async function run(request: Request) {
     }
   }
 
+  // Notify users whose predicted matches just went final. Wrapped so a push
+  // delivery problem can never fail the sync that already settled the points.
+  let notifications = { usersNotified: 0, predictionsMarked: 0, deadSubscriptions: 0 };
+  try {
+    notifications = await sendResultNotifications(supabase);
+  } catch (error) {
+    console.error('sendResultNotifications failed', error);
+  }
+
   return NextResponse.json({
     teamsUpserted: teams.length,
     matchesUpserted: matches.length,
     finalMatches: finalMatches?.length ?? 0,
     predictionsScored: scored,
+    notifications,
     ...(purgeSeed ? { purgedSeedMatches: purgedMatches, purgedSeedTeams: purgedTeams } : {}),
   });
 }

@@ -82,6 +82,23 @@ create table public.fan_profiles (
 
 create unique index fan_profiles_share_token_key on public.fan_profiles(share_token);
 
+-- Web push subscriptions for personal result notifications. One row per browser
+-- endpoint; a user can have several (multiple devices/browsers). See
+-- src/app/api/push/* and src/lib/notifications/send-result-notifications.ts.
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  endpoint text unique not null,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz not null default now()
+);
+
+-- Idempotency guard: set once a result push covering this settled pick has been
+-- sent, so re-runs of the 30-min sync never re-notify. Null until notified.
+alter table public.predictions add column if not exists result_notified_at timestamptz;
+
 create or replace view public.matches_with_teams as
 select
   m.id,
@@ -170,6 +187,7 @@ alter table public.teams enable row level security;
 alter table public.matches enable row level security;
 alter table public.predictions enable row level security;
 alter table public.fan_profiles enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 create policy "Public can read teams" on public.teams for select using (true);
 create policy "Public can read matches" on public.matches for select using (true);
@@ -179,6 +197,12 @@ create policy "Users can read own predictions" on public.predictions for select 
 create policy "Users can create own predictions" on public.predictions for insert with check (auth.uid() = user_id);
 create policy "Users can update own predictions" on public.predictions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users can read own fan profile" on public.fan_profiles for select using (auth.uid() = user_id);
+-- Users manage only their own push subscriptions. Sends run via the service-role
+-- admin client (RLS-exempt), so no select/update policy is needed for delivery.
+create policy "Users can read own push subscriptions" on public.push_subscriptions for select using (auth.uid() = user_id);
+create policy "Users can create own push subscriptions" on public.push_subscriptions for insert with check (auth.uid() = user_id);
+create policy "Users can update own push subscriptions" on public.push_subscriptions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can delete own push subscriptions" on public.push_subscriptions for delete using (auth.uid() = user_id);
 
 grant usage on schema public to anon, authenticated;
 
@@ -187,6 +211,7 @@ revoke all on public.teams from anon, authenticated;
 revoke all on public.matches from anon, authenticated;
 revoke all on public.predictions from anon, authenticated;
 revoke all on public.fan_profiles from anon, authenticated;
+revoke all on public.push_subscriptions from anon, authenticated;
 
 grant select on public.teams to anon, authenticated;
 grant select on public.matches to anon, authenticated;
@@ -215,6 +240,10 @@ grant update (
 ) on public.predictions to authenticated;
 
 grant select on public.fan_profiles to authenticated;
+
+grant select, delete on public.push_subscriptions to authenticated;
+grant insert (user_id, endpoint, p256dh, auth, last_used_at) on public.push_subscriptions to authenticated;
+grant update (user_id, p256dh, auth, last_used_at) on public.push_subscriptions to authenticated;
 
 -- Leaderboard is intentionally public; it exposes display names and aggregate scores only.
 grant select on public.matches_with_teams to anon, authenticated;
