@@ -1,4 +1,4 @@
-import { MatchCard } from '@/components/MatchCard';
+import { MatchesBrowser } from '@/components/MatchesBrowser';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -36,9 +36,9 @@ export default async function MatchesPage() {
         <p className="mt-2 text-gray-400">Open a match, predict the score, then let FanBrain AI judge the pick.</p>
       </div>
       {!supabaseConfigured && <SetupNotice />}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {matches.map((match) => <MatchCard key={match.id} match={match} predicted={predictedMatchIds.has(match.id)} />)}
-      </div>
+      {supabaseConfigured && (
+        <MatchesBrowser matches={matches} predictedMatchIds={[...predictedMatchIds]} />
+      )}
     </div>
   );
 }
