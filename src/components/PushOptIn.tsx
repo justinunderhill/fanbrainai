@@ -2,20 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, Loader2, X } from 'lucide-react';
+import { pushSupported, syncPushSubscription, VAPID_PUBLIC_KEY } from '@/lib/push';
 
 const DISMISS_KEY = 'fb-push-optin-dismissed';
-
-/** VAPID public keys are base64url; PushManager wants the raw bytes. */
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-  const normalized = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(normalized);
-  // Back with an explicit ArrayBuffer so the type is Uint8Array<ArrayBuffer>,
-  // which is what PushManager.subscribe's applicationServerKey expects.
-  const output = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
-  return output;
-}
 
 /**
  * Value-framed nudge to turn on result notifications, shown once after a user
@@ -31,8 +20,7 @@ export function PushOptIn({ active }: { active: boolean }) {
 
   useEffect(() => {
     if (!active) return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
-    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
+    if (!pushSupported() || !VAPID_PUBLIC_KEY) return;
     try {
       if (localStorage.getItem(DISMISS_KEY)) return;
     } catch {
@@ -63,18 +51,8 @@ export function PushOptIn({ active }: { active: boolean }) {
         return;
       }
 
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
-      });
-
-      const response = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription.toJSON()),
-      });
-      if (!response.ok) throw new Error('subscribe failed');
+      const saved = await syncPushSubscription();
+      if (!saved) throw new Error('subscribe failed');
 
       dismiss();
     } catch {
