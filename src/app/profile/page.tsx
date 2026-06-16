@@ -4,12 +4,17 @@ import { GenerateProfileButton } from '@/components/GenerateProfileButton';
 import { ShareProfileButton } from '@/components/ShareProfileButton';
 import { FanProfileTraits } from '@/components/FanProfileTraits';
 import { NextActionCard } from '@/components/NextActionCard';
+import { ProfileProgression } from '@/components/ProfileProgression';
 import { SetupNotice } from '@/components/SetupNotice';
 import { buildNextAction } from '@/lib/next-action';
+import { summarizeRecentPicks } from '@/lib/profile-progression';
 import { currentStreak } from '@/lib/scoring';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
+
+// created_at isn't on the shared Prediction type, so type the query result locally.
+type ProfilePrediction = Pick<Prediction, 'match_id' | 'points_awarded' | 'prediction_style'> & { created_at: string };
 
 export default async function ProfilePage() {
   if (!hasSupabasePublicEnv()) {
@@ -39,11 +44,12 @@ export default async function ProfilePage() {
   const { data: userRow } = await supabase.from('users').select('display_name').eq('id', auth.user.id).maybeSingle();
 
   // Prediction streak: 🔥 correct calls in a row across settled picks (see currentStreak).
+  // prediction_style + created_at also drive the post-unlock progression panel.
   const { data: predictionData } = await supabase
     .from('predictions')
-    .select('match_id, points_awarded')
+    .select('match_id, points_awarded, prediction_style, created_at')
     .eq('user_id', auth.user.id);
-  const predictions = (predictionData ?? []) as Pick<Prediction, 'match_id' | 'points_awarded'>[];
+  const predictions = (predictionData ?? []) as ProfilePrediction[];
   const { data: allMatchData } = await supabase
     .from('matches_with_teams')
     .select('*')
@@ -70,6 +76,16 @@ export default async function ProfilePage() {
       .filter((row): row is { prediction: typeof row.prediction; match: NonNullable<typeof row.match> } => Boolean(row.match));
     streak = currentStreak(settled);
   }
+
+  // Picks made after the profile was last generated, summarised by trait lean. Drives the
+  // post-unlock progression panel; null until a profile exists.
+  const recentLean = profile
+    ? summarizeRecentPicks(
+        predictions
+          .filter((p) => new Date(p.created_at).getTime() > new Date(profile.updated_at).getTime())
+          .map((p) => p.prediction_style),
+      )
+    : null;
 
   return (
     <div className="space-y-6">
@@ -103,6 +119,7 @@ export default async function ProfilePage() {
           <GenerateProfileButton userId={auth.user.id} displayName={userRow?.display_name} />
         </section>
       ) : (
+        <>
         <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="card-gradient relative overflow-hidden rounded-3xl border border-white/10 p-6 shadow-glow">
             <span className="field-arc pointer-events-none absolute inset-x-5 top-0 h-20 opacity-60" />
@@ -130,6 +147,8 @@ export default async function ProfilePage() {
 
           <FanProfileTraits scores={profile} />
         </section>
+        {recentLean && <ProfileProgression lean={recentLean} />}
+        </>
       )}
     </div>
   );
