@@ -264,7 +264,7 @@ export function PredictionForm({
         <ScoreStepper team={match.away_team} value={awayScore} onChange={setAwayScore} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Prediction style">
         {styles.map((item) => {
           const selected = predictionStyle === item.value;
           return (
@@ -285,7 +285,7 @@ export function PredictionForm({
         })}
       </div>
 
-      <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional: explain your pick in one sentence..." className="input-game mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-sm" />
+      <textarea value={reason} onChange={(e) => setReason(e.target.value)} aria-label="Why this pick? (optional)" placeholder="Optional: explain your pick in one sentence..." className="input-game mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-sm" />
 
       <div className="mt-4 flex flex-wrap gap-3">
         <button disabled={loading} onClick={submitPrediction} className="btn btn-primary px-6 py-3">

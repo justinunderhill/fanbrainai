@@ -32,7 +32,14 @@ export function NextActionCard({ action, className = '' }: { action: NextAction;
                   <span>{action.progress.label}</span>
                   <span>{percent}%</span>
                 </div>
-                <div className="h-2 rounded-full bg-white/10">
+                <div
+                  className="h-2 rounded-full bg-white/10"
+                  role="progressbar"
+                  aria-valuenow={action.progress.value}
+                  aria-valuemin={0}
+                  aria-valuemax={action.progress.max}
+                  aria-label={action.progress.label}
+                >
                   <div className="h-full rounded-full bg-emerald-400" style={{ width: `${percent}%` }} />
                 </div>
               </div>

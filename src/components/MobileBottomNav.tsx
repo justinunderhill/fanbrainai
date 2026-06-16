@@ -25,7 +25,7 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? 'page' : undefined}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-xs font-black transition-colors ${
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-xs font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/70 ${
                 active ? 'bg-emerald-400 text-gray-950 shadow-glow' : 'text-gray-400 hover:bg-white/5 hover:text-white'
               }`}
             >

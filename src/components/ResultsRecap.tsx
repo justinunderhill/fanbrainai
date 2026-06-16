@@ -20,6 +20,17 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
   const [dismissed, setDismissed] = useState(false);
   // Overrides for debriefs generated this session, keyed by prediction id.
   const [fetched, setFetched] = useState<Record<string, DebriefState>>({});
+  // Skip confetti entirely for users who prefer reduced motion (the global CSS damping
+  // would otherwise leave a frozen flash rather than no animation at all).
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReduceMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const newly = useMemo(
     () => settled.filter((s) => !stored.seenIds.includes(s.prediction.id)),
@@ -80,7 +91,7 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
 
   return (
     <section className="card-gradient animate-pop-in relative overflow-hidden rounded-[2rem] border border-emerald-400/30 p-6 shadow-glow sm:p-8">
-      {hasExact && <Confetti />}
+      {hasExact && !reduceMotion && <Confetti />}
       <button
         onClick={dismiss}
         aria-label="Dismiss results recap"

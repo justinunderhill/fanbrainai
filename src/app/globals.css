@@ -128,7 +128,8 @@ body {
   /* Selectable chip with press feedback. */
   .chip {
     @apply transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out
-      will-change-transform active:scale-95;
+      will-change-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2
+      focus-visible:ring-emerald-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950;
   }
 
   /* Lifts and glows on hover; settles slightly on press. */
