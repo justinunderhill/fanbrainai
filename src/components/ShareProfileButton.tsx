@@ -1,6 +1,7 @@
 'use client';
 
 import { ShareButtons } from '@/components/ShareButtons';
+import { fanTypePhrase } from '@/lib/utils';
 
 export function ShareProfileButton({
   token,
@@ -16,7 +17,7 @@ export function ShareProfileButton({
         title="My FanBrain fan personality"
         heading="Share your fan personality"
         blurb="Send friends an unlisted link to your profile card."
-        shareText={`I'm a ${personalityType} on FanBrain — find your World Cup fan personality:`}
+        shareText={`I'm ${fanTypePhrase(personalityType)} on FanBrain — find your World Cup fan personality:`}
       />
     </div>
   );

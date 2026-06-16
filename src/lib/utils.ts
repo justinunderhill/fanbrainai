@@ -45,6 +45,15 @@ export function matchStateLabel(match: { status: MatchStatus; kickoff_time: stri
   }
 }
 
+// Fan personality types are phrased with their own article ("The Tactical Nerd"), so a
+// sentence like "Jay is ${type}" needs none added — otherwise it reads "is a The Tactical
+// Nerd". Only prepend "a/an" if a type somehow arrives without a leading article.
+export function fanTypePhrase(type: string): string {
+  const trimmed = type.trim();
+  if (/^(the|a|an)\s/i.test(trimmed)) return trimmed;
+  return `${/^[aeiou]/i.test(trimmed) ? 'an' : 'a'} ${trimmed}`;
+}
+
 export function getOutcome(homeScore: number, awayScore: number) {
   if (homeScore > awayScore) return 'HOME';
   if (awayScore > homeScore) return 'AWAY';

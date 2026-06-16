@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { BrainCircuit, ShieldCheck } from 'lucide-react';
 import { FanProfileTraits } from '@/components/FanProfileTraits';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { fanTypePhrase } from '@/lib/utils';
 
 type SharedProfile = {
   user_id: string;
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     return { title: 'Profile not found · FanBrain AI' };
   }
 
-  const title = `${result.displayName} is a ${result.profile.personality_type} · FanBrain`;
+  const title = `${result.displayName} is ${fanTypePhrase(result.profile.personality_type)} · FanBrain`;
   const description = result.profile.summary;
   const image = { url: `/p/${token}/og`, width: 1200, height: 630, alt: 'FanBrain fan personality' };
   // Relative URLs resolve against metadataBase (NEXT_PUBLIC_SITE_URL) into absolute links.
