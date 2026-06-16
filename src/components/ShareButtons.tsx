@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Copy, Link2, Share2 } from 'lucide-react';
+import { Check, Copy, Download, Link2, Loader2, Share2 } from 'lucide-react';
 
 /**
  * Shared share-sheet UI: read-only link with inline copy + a uniform social grid
@@ -30,8 +30,13 @@ export function ShareButtons({
   tone?: 'emerald' | 'amber';
 }) {
   const [copied, setCopied] = useState(false);
-  const [client, setClient] = useState<{ base: string; canNativeShare: boolean }>({ base: '', canNativeShare: false });
-  const { base, canNativeShare } = client;
+  const [imageBusy, setImageBusy] = useState(false);
+  const [client, setClient] = useState<{ base: string; canNativeShare: boolean; canShareImage: boolean }>({
+    base: '',
+    canNativeShare: false,
+    canShareImage: false,
+  });
+  const { base, canNativeShare, canShareImage } = client;
 
   // Prefer the configured site URL (NEXT_PUBLIC_SITE_URL, e.g. https://fanbrainai.com in
   // prod) so share links use the canonical domain. Fall back to the live origin for local
@@ -39,8 +44,14 @@ export function ShareButtons({
   // displayed URL is correct without a hydration mismatch.
   useEffect(() => {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '');
+    // Web Share Level 2 (file sharing) is detected separately from Level 1 (link sharing):
+    // a browser can expose navigator.share for links yet not accept files. Probe with a
+    // dummy PNG so the button label reflects what the click will actually do.
+    const canShareImage =
+      typeof navigator.canShare === 'function' &&
+      navigator.canShare({ files: [new File([], 'card.png', { type: 'image/png' })] });
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setClient({ base: siteUrl || window.location.origin, canNativeShare: !!navigator.share });
+    setClient({ base: siteUrl || window.location.origin, canNativeShare: !!navigator.share, canShareImage });
   }, []);
 
   const shareUrl = `${base}${path}`;
@@ -60,6 +71,40 @@ export function ShareButtons({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard blocked (e.g. insecure context) — nothing we can do silently.
+    }
+  }
+
+  async function shareOrSaveImage() {
+    setImageBusy(true);
+    try {
+      const resolvedBase = base || window.location.origin;
+      const imageUrl = `${resolvedBase}${path.replace(/\/+$/, '')}/og`;
+      const response = await fetch(imageUrl);
+      if (!response.ok) return;
+
+      const blob = await response.blob();
+      const file = new File([blob], imageFilename(path), { type: blob.type || 'image/png' });
+      const fileShareData: ShareData = { files: [file], title, text: shareText };
+
+      if (navigator.share && navigator.canShare?.(fileShareData)) {
+        await navigator.share(fileShareData);
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // Defer revoke: some browsers (notably Firefox) cancel the download if the blob URL
+      // is revoked synchronously before they've started reading it.
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    } catch {
+      // Fetch failed, file sharing is unavailable, or the user dismissed the sheet.
+    } finally {
+      setImageBusy(false);
     }
   }
 
@@ -90,6 +135,11 @@ export function ShareButtons({
         </button>
       </div>
 
+      <button onClick={shareOrSaveImage} disabled={imageBusy} className="btn btn-primary mt-3 w-full px-4 py-2.5 text-sm">
+        {imageBusy ? <Loader2 size={16} className="animate-spin" /> : canShareImage ? <Share2 size={16} /> : <Download size={16} />}
+        {imageBusy ? 'Preparing image...' : canShareImage ? 'Share image' : 'Save image'}
+      </button>
+
       {/* Uniform social grid so the buttons line up cleanly. */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <ShareLink href={tweetUrl}>X</ShareLink>
@@ -115,4 +165,11 @@ function ShareLink({ href, children }: { href: string; children: React.ReactNode
       {children}
     </a>
   );
+}
+
+function imageFilename(path: string) {
+  if (path.startsWith('/p/')) return 'fanbrain-profile.png';
+  if (path.startsWith('/r/')) return 'fanbrain-prediction.png';
+  if (path === '/leaderboard') return 'fanbrain-leaderboard.png';
+  return 'fanbrain-card.png';
 }
