@@ -8,9 +8,11 @@ import { useAuth } from '@/components/AuthProvider';
 export function PredictionAuthGate({
   match,
   initialPrediction = null,
+  nextMatch = null,
 }: {
   match: MatchWithTeams;
   initialPrediction?: Prediction | null;
+  nextMatch?: MatchWithTeams | null;
 }) {
   const { loading, user } = useAuth();
 
@@ -26,5 +28,5 @@ export function PredictionAuthGate({
     return <SignInToPredictPanel returnTo={`/matches/${match.id}`} />;
   }
 
-  return <PredictionForm match={match} initialPrediction={initialPrediction} />;
+  return <PredictionForm match={match} initialPrediction={initialPrediction} nextMatch={nextMatch} />;
 }

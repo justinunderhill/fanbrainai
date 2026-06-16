@@ -4,6 +4,7 @@ import { SetupNotice } from '@/components/SetupNotice';
 import { TeamFlag } from '@/components/TeamFlag';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { nextPredictableMatch } from '@/lib/next-action';
 import { formatKickoff } from '@/lib/utils';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
 
@@ -28,6 +29,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
   // user's own row.
   const { data: { user } } = await supabase.auth.getUser();
   let initialPrediction: Prediction | null = null;
+  let nextMatch: MatchWithTeams | null = null;
   if (user) {
     const { data: existing } = await supabase
       .from('predictions')
@@ -36,6 +38,20 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       .eq('user_id', user.id)
       .maybeSingle();
     initialPrediction = (existing as Prediction | null) ?? null;
+
+    const { data: predictions } = await supabase
+      .from('predictions')
+      .select('match_id')
+      .eq('user_id', user.id);
+    const predictedIds = new Set((predictions ?? []).map((prediction) => prediction.match_id as string));
+    predictedIds.add(id);
+
+    const { data: upcomingMatches } = await supabase
+      .from('matches_with_teams')
+      .select('*')
+      .eq('status', 'scheduled')
+      .order('kickoff_time', { ascending: true });
+    nextMatch = nextPredictableMatch((upcomingMatches ?? []) as MatchWithTeams[], predictedIds);
   }
 
   return (
@@ -63,7 +79,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)}{match.venue ? ` · ${match.venue}` : ''}</p>
       </section>
 
-      <PredictionAuthGate match={match} initialPrediction={initialPrediction} />
+      <PredictionAuthGate match={match} initialPrediction={initialPrediction} nextMatch={nextMatch} />
     </div>
   );
 }

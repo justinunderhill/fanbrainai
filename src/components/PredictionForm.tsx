@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Flame, Loader2, Sparkles } from 'lucide-react';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { PushOptIn } from '@/components/PushOptIn';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
@@ -47,9 +47,11 @@ function getPredictionErrorMessage(errorMessage?: string) {
 export function PredictionForm({
   match,
   initialPrediction = null,
+  nextMatch = null,
 }: {
   match: MatchWithTeams;
   initialPrediction?: Prediction | null;
+  nextMatch?: MatchWithTeams | null;
 }) {
   const { loading: authLoading, user: authUser } = useAuth();
   const isEditing = Boolean(initialPrediction);
@@ -290,7 +292,12 @@ export function PredictionForm({
           {loading && <Loader2 size={18} className="animate-spin" />}
           {loading ? 'Saving...' : isEditing ? 'Update prediction' : 'Save prediction'}
         </button>
-        <button disabled={loading} onClick={roastPrediction} className="btn btn-ghost px-6 py-3">Roast my pick 🔥</button>
+        {!saved && (
+          <button disabled={loading} onClick={roastPrediction} className="btn btn-ghost px-6 py-3">
+            <Flame size={18} />
+            Roast my pick
+          </button>
+        )}
       </div>
 
       {message && <p className="mt-4 animate-slide-up text-sm text-gray-300">{message}</p>}
@@ -298,12 +305,28 @@ export function PredictionForm({
       {aiRoast && <div className="mt-4 animate-pop-in rounded-3xl border border-pink-400/30 bg-pink-400/10 p-4"><p className="text-sm font-bold text-pink-200">Roast Mode</p><p className="mt-2 text-gray-100">{aiRoast}</p></div>}
 
       {saved && (
-        <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-5 animate-slide-up">
-          <Link href="/matches" className="btn btn-primary px-5 py-3">
-            Pick another match
-            <ArrowRight size={18} />
-          </Link>
-          <Link href="/predictions" className="btn btn-ghost px-5 py-3">View your predictions</Link>
+        <div className="mt-5 animate-slide-up rounded-3xl border border-emerald-300/25 bg-emerald-400/[0.07] p-4">
+          <p className="flex items-center gap-2 text-sm font-black text-emerald-100">
+            <Sparkles size={16} /> What next?
+          </p>
+          <p className="mt-1 text-sm text-gray-300">
+            {nextMatch
+              ? `Keep the loop moving with ${nextMatch.home_team.name} vs ${nextMatch.away_team.name}.`
+              : 'Your pick is saved. Check your list or browse the match schedule.'}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+            <Link href={nextMatch ? `/matches/${nextMatch.id}` : '/matches'} className="btn btn-primary px-5 py-3">
+              {nextMatch ? 'Predict next match' : 'Pick another match'}
+              <ArrowRight size={18} />
+            </Link>
+            {!aiRoast && (
+              <button disabled={loading} onClick={roastPrediction} className="btn btn-ghost px-5 py-3">
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Flame size={18} />}
+                Roast this pick
+              </button>
+            )}
+            <Link href="/predictions" className="btn btn-ghost px-5 py-3">View picks</Link>
+          </div>
         </div>
       )}
 

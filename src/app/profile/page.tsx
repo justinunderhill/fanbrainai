@@ -3,7 +3,9 @@ import { BrainCircuit, Flame, RefreshCw, ShieldCheck, Sparkles } from 'lucide-re
 import { GenerateProfileButton } from '@/components/GenerateProfileButton';
 import { ShareProfileButton } from '@/components/ShareProfileButton';
 import { FanProfileTraits } from '@/components/FanProfileTraits';
+import { NextActionCard } from '@/components/NextActionCard';
 import { SetupNotice } from '@/components/SetupNotice';
+import { buildNextAction } from '@/lib/next-action';
 import { currentStreak } from '@/lib/scoring';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -42,6 +44,17 @@ export default async function ProfilePage() {
     .select('match_id, points_awarded')
     .eq('user_id', auth.user.id);
   const predictions = (predictionData ?? []) as Pick<Prediction, 'match_id' | 'points_awarded'>[];
+  const { data: allMatchData } = await supabase
+    .from('matches_with_teams')
+    .select('*')
+    .order('kickoff_time', { ascending: true });
+  const allMatches = (allMatchData ?? []) as MatchWithTeams[];
+  const nextAction = buildNextAction({
+    signedIn: true,
+    matches: allMatches,
+    predictions,
+    hasProfile: Boolean(profile),
+  });
   let streak = { current: 0, best: 0 };
   if (predictions.length > 0) {
     const { data: matchData } = await supabase
@@ -77,13 +90,15 @@ export default async function ProfilePage() {
         </div>
       </section>
 
+      <NextActionCard action={nextAction} />
+
       {!profile ? (
         <section className="card-gradient relative overflow-hidden rounded-3xl border border-white/10 p-6 shadow-glow">
           <span className="field-arc pointer-events-none absolute inset-x-5 top-0 h-20 opacity-60" />
           <div className="relative max-w-xl">
             <Sparkles className="mb-4 text-amber-200" size={28} />
             <h2 className="text-2xl font-black">Personality pending</h2>
-            <p className="mt-3 text-gray-300">No AI profile yet. Make at least five predictions, then generate your profile.</p>
+            <p className="mt-3 text-gray-300">No AI profile yet. Reach five predictions, then generate your profile.</p>
           </div>
           <GenerateProfileButton userId={auth.user.id} displayName={userRow?.display_name} />
         </section>

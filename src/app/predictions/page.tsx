@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { NextActionCard } from '@/components/NextActionCard';
 import { PredictionRow } from '@/components/PredictionRow';
 import { SetupNotice } from '@/components/SetupNotice';
+import { buildNextAction } from '@/lib/next-action';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
@@ -29,15 +31,13 @@ export default async function PredictionsPage() {
     .eq('user_id', auth.user.id);
   const predictions = (predictionData ?? []) as Prediction[];
 
-  const matchIds = predictions.map((p) => p.match_id);
-  let matchesById = new Map<string, MatchWithTeams>();
-  if (matchIds.length > 0) {
-    const { data: matchData } = await supabase
-      .from('matches_with_teams')
-      .select('*')
-      .in('id', matchIds);
-    matchesById = new Map(((matchData ?? []) as MatchWithTeams[]).map((m) => [m.id, m]));
-  }
+  const { data: allMatchData } = await supabase
+    .from('matches_with_teams')
+    .select('*')
+    .order('kickoff_time', { ascending: true });
+  const allMatches = (allMatchData ?? []) as MatchWithTeams[];
+  const matchesById = new Map(allMatches.map((m) => [m.id, m]));
+  const nextAction = buildNextAction({ signedIn: true, matches: allMatches, predictions });
 
   // Pair each prediction with its match, then order: upcoming (still editable)
   // first by soonest kickoff, then everything else by most recent kickoff.
@@ -63,10 +63,7 @@ export default async function PredictionsPage() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
-          <p className="text-gray-300">You haven&apos;t made any predictions yet.</p>
-          <Link href="/matches" className="btn btn-primary mt-5 px-6 py-3">Browse matches</Link>
-        </div>
+        <NextActionCard action={nextAction} />
       ) : (
         <div className="space-y-8">
           {upcoming.length > 0 && (

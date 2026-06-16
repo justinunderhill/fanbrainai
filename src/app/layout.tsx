@@ -3,6 +3,7 @@ import { SerwistProvider } from '@serwist/turbopack/react';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PushSync } from '@/components/PushSync';
 import { SiteHeader } from '@/components/SiteHeader';
 import { UpdateToast } from '@/components/UpdateToast';
@@ -50,7 +51,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           <AuthProvider>
             <SiteHeader />
-            <main className="mx-auto min-h-screen max-w-6xl px-4 py-8">{children}</main>
+            <main className="pb-page-mobile-nav mx-auto min-h-screen max-w-6xl px-4 pt-8">{children}</main>
+            <MobileBottomNav />
             <InstallPrompt />
             <UpdateToast />
             <PushSync />

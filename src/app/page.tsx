@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { BrainCircuit, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
+import { NextActionCard } from '@/components/NextActionCard';
 import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
 import { SetupNotice } from '@/components/SetupNotice';
 import { TeamFlag } from '@/components/TeamFlag';
+import { buildNextAction } from '@/lib/next-action';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
@@ -17,9 +19,21 @@ async function getMatches() {
     .from('matches_with_teams')
     .select('*')
     .in('status', ['scheduled', 'live'])
-    .order('kickoff_time', { ascending: true })
-    .limit(6);
+    .order('kickoff_time', { ascending: true });
   return (data ?? []) as MatchWithTeams[];
+}
+
+async function getFanPredictions(): Promise<{ signedIn: boolean; predictions: Pick<Prediction, 'match_id'>[] }> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { signedIn: false, predictions: [] };
+
+  const { data } = await supabase
+    .from('predictions')
+    .select('match_id')
+    .eq('user_id', auth.user.id);
+
+  return { signedIn: true, predictions: (data ?? []) as Pick<Prediction, 'match_id'>[] };
 }
 
 // Settled picks + current leaderboard rank for the signed-in fan's "return moment" recap.
@@ -55,8 +69,13 @@ async function getRecap(): Promise<{ settled: RecapItem[]; rank: number | null }
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
   const matches = supabaseConfigured ? await getMatches() : [];
-  const featuredMatch = matches[0];
+  const displayedMatches = matches.slice(0, 6);
+  const featuredMatch = displayedMatches[0];
   const recap = supabaseConfigured ? await getRecap() : null;
+  const fanPredictions = supabaseConfigured ? await getFanPredictions() : null;
+  const nextAction = fanPredictions
+    ? buildNextAction({ signedIn: fanPredictions.signedIn, matches, predictions: fanPredictions.predictions })
+    : null;
 
   return (
     <div className="space-y-10">
@@ -109,6 +128,8 @@ export default async function Home() {
         </div>
       </section>
 
+      {nextAction && <NextActionCard action={nextAction} />}
+
       <section>
         {!supabaseConfigured && <div className="mb-5"><SetupNotice /></div>}
         <div className="mb-5 flex items-end justify-between">
@@ -119,7 +140,7 @@ export default async function Home() {
           <Link href="/matches" className="text-sm font-bold text-emerald-300">See all</Link>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {matches.map((match) => <MatchCard key={match.id} match={match} />)}
+          {displayedMatches.map((match) => <MatchCard key={match.id} match={match} />)}
         </div>
       </section>
     </div>

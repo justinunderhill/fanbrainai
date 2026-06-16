@@ -84,7 +84,22 @@ body {
     padding-top: env(safe-area-inset-top);
   }
   .bottom-safe {
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+  }
+  .pb-mobile-nav-safe {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  .pb-page-mobile-nav {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .bottom-safe {
+      bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    }
+    .pb-page-mobile-nav {
+      padding-bottom: 2rem;
+    }
   }
 }
 
