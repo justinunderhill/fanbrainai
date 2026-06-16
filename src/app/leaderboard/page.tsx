@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Medal, Sparkles, Trophy } from 'lucide-react';
 import { CollapsibleShare } from '@/components/CollapsibleShare';
 import { SetupNotice } from '@/components/SetupNotice';
@@ -129,45 +130,49 @@ export default async function LeaderboardPage() {
         </section>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-gray-950/45 shadow-glow">
-        <div className="overflow-x-auto">
-          <table className="min-w-[680px] w-full text-left text-sm">
-            <thead className="bg-white/5 text-gray-300">
-              <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Fan</th>
-                <th className="px-4 py-3">Points</th>
-                <th className="px-4 py-3">Exact</th>
-                <th className="px-4 py-3">Outcomes</th>
-                <th className="px-4 py-3">Picks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={row.user_id} className="border-t border-white/10 transition-colors hover:bg-white/[0.04]">
-                  <td className="px-4 py-4">
-                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full border font-black ${rankTone(index)}`}>
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 font-bold text-white">{row.display_name ?? 'Anonymous fan'}</td>
-                  <td className="px-4 py-4 font-black text-emerald-300">{row.total_points}</td>
-                  <td className="px-4 py-4">{row.exact_scores}</td>
-                  <td className="px-4 py-4">{row.correct_outcomes}</td>
-                  <td className="px-4 py-4">{row.total_predictions}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {rows.length === 0 ? (
+        <div className="rounded-3xl border border-white/10 bg-gray-950/45 p-10 text-center shadow-glow">
+          <Sparkles className="mx-auto text-amber-200" size={28} />
+          <p className="mt-3 font-bold text-white">No points on the board yet.</p>
+          <p className="mt-1 text-sm text-gray-400">
+            The table lights up once the first predictions are scored. Be the first to get on it.
+          </p>
+          <Link href="/matches" className="btn btn-primary mt-5 px-6 py-3">Predict a match</Link>
         </div>
-        {rows.length === 0 && (
-          <div className="border-t border-white/10 p-8 text-center">
-            <Sparkles className="mx-auto text-amber-200" size={26} />
-            <p className="mt-3 font-bold text-white">No points on the board yet.</p>
-            <p className="mt-1 text-sm text-gray-400">Once predictions are scored, the table will light up.</p>
+      ) : (
+        <div className="overflow-hidden rounded-3xl border border-white/10 bg-gray-950/45 shadow-glow">
+          <div className="overflow-x-auto">
+            <table className="min-w-[680px] w-full text-left text-sm">
+              <thead className="bg-white/5 text-gray-300">
+                <tr>
+                  <th className="px-4 py-3">#</th>
+                  <th className="px-4 py-3">Fan</th>
+                  <th className="px-4 py-3">Points</th>
+                  <th className="px-4 py-3">Exact</th>
+                  <th className="px-4 py-3">Outcomes</th>
+                  <th className="px-4 py-3">Picks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={row.user_id} className="border-t border-white/10 transition-colors hover:bg-white/[0.04]">
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full border font-black ${rankTone(index)}`}>
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 font-bold text-white">{row.display_name ?? 'Anonymous fan'}</td>
+                    <td className="px-4 py-4 font-black text-emerald-300">{row.total_points}</td>
+                    <td className="px-4 py-4">{row.exact_scores}</td>
+                    <td className="px-4 py-4">{row.correct_outcomes}</td>
+                    <td className="px-4 py-4">{row.total_predictions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
