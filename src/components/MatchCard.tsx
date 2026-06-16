@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Check, MapPin } from 'lucide-react';
 import { TeamFlag } from '@/components/TeamFlag';
 import type { MatchWithTeams } from '@/lib/types';
-import { formatKickoff } from '@/lib/utils';
+import { formatKickoff, matchStateLabel } from '@/lib/utils';
 
 export function MatchCard({ match, predicted = false }: { match: MatchWithTeams; predicted?: boolean }) {
   const score = match.status === 'final' || match.status === 'live'
@@ -12,7 +12,9 @@ export function MatchCard({ match, predicted = false }: { match: MatchWithTeams;
     ? 'border-red-300/40 bg-red-400/15 text-red-100'
     : match.status === 'final'
       ? 'border-sky-300/35 bg-sky-400/12 text-sky-100'
-      : 'border-amber-300/35 bg-amber-300/12 text-amber-100';
+      : match.status === 'postponed'
+        ? 'border-white/15 bg-white/5 text-gray-300'
+        : 'border-amber-300/35 bg-amber-300/12 text-amber-100';
 
   return (
     <Link href={`/matches/${match.id}`} className="card-gradient card-interactive group relative block overflow-hidden rounded-3xl border border-white/10 p-5 shadow-glow">
@@ -29,7 +31,7 @@ export function MatchCard({ match, predicted = false }: { match: MatchWithTeams;
               Predicted
             </span>
           )}
-          <span className={`rounded-full border px-3 py-1 font-black ${statusClass}`}>{match.status}</span>
+          <span className={`rounded-full border px-3 py-1 font-black ${statusClass}`}>{matchStateLabel(match)}</span>
         </span>
       </div>
       <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
