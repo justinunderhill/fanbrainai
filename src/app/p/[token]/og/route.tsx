@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { fanTypePhrase } from '@/lib/utils';
 
 // Dynamic OG image as a Route Handler rather than the `opengraph-image` file convention:
 // in this Next version the convention fails on dynamic routes ("failed to pipe response"
@@ -64,9 +65,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '30px', color: '#cbd5e1' }}>{`${displayName} is a`}</div>
+          <div style={{ fontSize: '30px', color: '#cbd5e1' }}>{`${displayName} is`}</div>
           <div style={{ fontSize: '88px', fontWeight: 800, lineHeight: 1.05, marginTop: '8px', color: '#ffffff' }}>
-            {personalityType}
+            {fanTypePhrase(personalityType)}
           </div>
         </div>
 
