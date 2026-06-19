@@ -4,6 +4,7 @@ import { GenerateProfileButton } from '@/components/GenerateProfileButton';
 import { ShareProfileButton } from '@/components/ShareProfileButton';
 import { FanProfileTraits } from '@/components/FanProfileTraits';
 import { NextActionCard } from '@/components/NextActionCard';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { ProfileProgression } from '@/components/ProfileProgression';
 import { SetupNotice } from '@/components/SetupNotice';
 import { buildNextAction } from '@/lib/next-action';
@@ -107,6 +108,8 @@ export default async function ProfilePage() {
       </section>
 
       <NextActionCard action={nextAction} />
+
+      <NotificationSettings />
 
       {!profile ? (
         <section className="card-gradient relative overflow-hidden rounded-3xl border border-white/10 p-6 shadow-glow">
