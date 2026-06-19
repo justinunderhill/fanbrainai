@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Medal, Trophy } from 'lucide-react';
 import { InviteLink } from '@/components/InviteLink';
 import { LeagueActions } from '@/components/LeagueActions';
+import { TransferOwnership } from '@/components/TransferOwnership';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -152,6 +153,13 @@ export default async function LeagueDetailPage({ params }: { params: Promise<{ i
           </table>
         </div>
       </div>
+
+      {isOwner && (
+        <TransferOwnership
+          leagueId={league.id}
+          members={rows.filter((row) => row.user_id !== currentUserId).map((row) => ({ user_id: row.user_id, display_name: row.display_name }))}
+        />
+      )}
 
       <div className="space-y-2 border-t border-white/10 pt-6">
         {isOwner && (

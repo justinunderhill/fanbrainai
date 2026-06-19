@@ -406,6 +406,31 @@ begin
 end;
 $$;
 
+-- Hand a league to another member, then the old owner becomes a regular member
+-- (free to leave). Definer + checks: only the current owner can transfer, and
+-- only to someone who is already a member. Avoids a permissive UPDATE policy
+-- whose WITH CHECK on owner_id would block legitimate transfers.
+create or replace function public.transfer_league_ownership(p_league uuid, p_new_owner uuid)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'Not authenticated';
+  end if;
+  if not exists (select 1 from public.leagues where id = p_league and owner_id = v_uid) then
+    raise exception 'Only the league owner can transfer ownership';
+  end if;
+  if not exists (select 1 from public.league_members where league_id = p_league and user_id = p_new_owner) then
+    raise exception 'New owner must be a member of the league';
+  end if;
+  update public.leagues set owner_id = p_new_owner where id = p_league;
+end;
+$$;
+
 alter table public.leagues enable row level security;
 alter table public.league_members enable row level security;
 
@@ -432,3 +457,4 @@ grant execute on function public.create_league(text) to authenticated;
 grant execute on function public.join_league(text) to authenticated;
 grant execute on function public.league_by_invite(text) to authenticated;
 grant execute on function public.league_leaderboard(uuid) to authenticated;
+grant execute on function public.transfer_league_ownership(uuid, uuid) to authenticated;
