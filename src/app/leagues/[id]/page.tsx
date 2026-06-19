@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Medal, Trophy } from 'lucide-react';
 import { InviteLink } from '@/components/InviteLink';
+import { LeagueActions } from '@/components/LeagueActions';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -152,9 +153,12 @@ export default async function LeagueDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      {isOwner && (
-        <p className="text-center text-xs text-gray-500">You own this league. Share the invite link above to grow it.</p>
-      )}
+      <div className="space-y-2 border-t border-white/10 pt-6">
+        {isOwner && (
+          <p className="text-center text-xs text-gray-500">You own this league. Deleting it removes it for everyone.</p>
+        )}
+        <LeagueActions leagueId={league.id} isOwner={isOwner} />
+      </div>
     </div>
   );
 }
