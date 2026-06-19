@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BrainCircuit, ListChecks, Medal, Trophy } from 'lucide-react';
+import { BrainCircuit, ListChecks, Medal, Trophy, Users } from 'lucide-react';
 
 const ITEMS = [
   { href: '/matches', label: 'Matches', icon: Trophy },
   { href: '/predictions', label: 'My Picks', icon: ListChecks },
   { href: '/leaderboard', label: 'Board', icon: Medal },
+  { href: '/leagues', label: 'Leagues', icon: Users },
   { href: '/profile', label: 'Profile', icon: BrainCircuit },
 ];
 
@@ -16,7 +17,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-gray-950/95 px-3 pb-mobile-nav-safe pt-2 backdrop-blur md:hidden" aria-label="Primary">
-      <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+      <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
         {ITEMS.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

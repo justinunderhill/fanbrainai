@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { buildWorldCupUpserts } from '@/lib/fixtures/football-data';
 import { scorePrediction } from '@/lib/scoring';
 import { sendResultNotifications } from '@/lib/notifications/send-result-notifications';
+import { sendPredictionReminders } from '@/lib/notifications/send-prediction-reminders';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -121,12 +122,22 @@ async function run(request: Request) {
     console.error('sendResultNotifications failed', error);
   }
 
+  // Nudge opted-in users about matches kicking off soon that they haven't
+  // predicted. Wrapped so a reminder delivery problem can never fail the sync.
+  let reminders = { usersNotified: 0, remindersMarked: 0, deadSubscriptions: 0 };
+  try {
+    reminders = await sendPredictionReminders(supabase);
+  } catch (error) {
+    console.error('sendPredictionReminders failed', error);
+  }
+
   return NextResponse.json({
     teamsUpserted: teams.length,
     matchesUpserted: matches.length,
     finalMatches: finalMatches?.length ?? 0,
     predictionsScored: scored,
     notifications,
+    reminders,
     ...(purgeSeed ? { purgedSeedMatches: purgedMatches, purgedSeedTeams: purgedTeams } : {}),
   });
 }

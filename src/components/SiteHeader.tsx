@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/matches', label: 'Matches' },
   { href: '/predictions', label: 'My Picks' },
   { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/leagues', label: 'Leagues' },
   { href: '/profile', label: 'Profile' },
 ];
 

@@ -99,6 +99,18 @@ create table if not exists public.push_subscriptions (
 -- sent, so re-runs of the 30-min sync never re-notify. Null until notified.
 alter table public.predictions add column if not exists result_notified_at timestamptz;
 
+-- Idempotency log for deadline reminders: one row per (user, match) once we've
+-- nudged that user about an unpredicted match kicking off soon, so the 30-min
+-- sync never double-pings them for the same match. Like push_subscriptions, this
+-- is touched only by the service-role admin client (RLS-exempt) — no grants/policies.
+-- See src/lib/notifications/send-prediction-reminders.ts.
+create table if not exists public.prediction_reminders (
+  user_id uuid not null references public.users(id) on delete cascade,
+  match_id uuid not null references public.matches(id) on delete cascade,
+  sent_at timestamptz not null default now(),
+  primary key (user_id, match_id)
+);
+
 create or replace view public.matches_with_teams as
 select
   m.id,
@@ -188,6 +200,8 @@ alter table public.matches enable row level security;
 alter table public.predictions enable row level security;
 alter table public.fan_profiles enable row level security;
 alter table public.push_subscriptions enable row level security;
+-- No policies/grants: only the service-role admin client (RLS-exempt) reads/writes this.
+alter table public.prediction_reminders enable row level security;
 
 create policy "Public can read teams" on public.teams for select using (true);
 create policy "Public can read matches" on public.matches for select using (true);
@@ -251,3 +265,170 @@ grant update (user_id, endpoint, p256dh, auth, last_used_at) on public.push_subs
 -- Leaderboard is intentionally public; it exposes display names and aggregate scores only.
 grant select on public.matches_with_teams to anon, authenticated;
 grant select on public.leaderboard to anon, authenticated;
+
+-- ============================================================================
+-- Private leagues: friends form a group and compete on a members-only board.
+-- Predictions are RLS-restricted to their own user, so the members-scoped
+-- leaderboard and the join-before-you're-a-member lookups run through
+-- SECURITY DEFINER functions (same pattern as handle_new_user) rather than
+-- broad table grants.
+-- ============================================================================
+
+create table if not exists public.leagues (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(trim(name)) between 1 and 60),
+  owner_id uuid not null references public.users(id) on delete cascade,
+  -- Short, unguessable, URL-safe handle shared as /leagues/join/<code>.
+  invite_code text unique not null default encode(gen_random_bytes(6), 'hex'),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.league_members (
+  league_id uuid not null references public.leagues(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (league_id, user_id)
+);
+
+create index if not exists league_members_user_id_idx on public.league_members(user_id);
+
+-- Membership check used inside RLS policies. SECURITY DEFINER so it bypasses RLS
+-- on league_members and avoids the policy recursing into itself.
+create or replace function public.is_league_member(p_league uuid)
+returns boolean
+language sql
+security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.league_members
+    where league_id = p_league and user_id = auth.uid()
+  );
+$$;
+
+-- Create a league and add the caller as its first member, atomically. Routed
+-- through a definer so a league can never exist without its owner as a member.
+create or replace function public.create_league(p_name text)
+returns public.leagues
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_league public.leagues;
+begin
+  if v_uid is null then
+    raise exception 'Not authenticated';
+  end if;
+  if char_length(trim(coalesce(p_name, ''))) = 0 then
+    raise exception 'League name is required';
+  end if;
+  insert into public.leagues (name, owner_id)
+  values (trim(p_name), v_uid)
+  returning * into v_league;
+  insert into public.league_members (league_id, user_id)
+  values (v_league.id, v_uid);
+  return v_league;
+end;
+$$;
+
+-- Join a league by invite code. Definer so a non-member can insert their own
+-- membership row (there is intentionally no direct insert grant/policy).
+create or replace function public.join_league(p_invite_code text)
+returns uuid
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_league_id uuid;
+begin
+  if v_uid is null then
+    raise exception 'Not authenticated';
+  end if;
+  select id into v_league_id from public.leagues where invite_code = p_invite_code;
+  if v_league_id is null then
+    raise exception 'League not found';
+  end if;
+  insert into public.league_members (league_id, user_id)
+  values (v_league_id, v_uid)
+  on conflict (league_id, user_id) do nothing;
+  return v_league_id;
+end;
+$$;
+
+-- Public-by-code preview so the join page can show the league name to someone
+-- who isn't a member yet, without exposing a broad select on leagues.
+create or replace function public.league_by_invite(p_invite_code text)
+returns table (id uuid, name text, member_count bigint)
+language sql
+security definer set search_path = public
+as $$
+  select l.id, l.name, count(lm.user_id) as member_count
+  from public.leagues l
+  left join public.league_members lm on lm.league_id = l.id
+  where l.invite_code = p_invite_code
+  group by l.id, l.name;
+$$;
+
+-- Members-only leaderboard, mirroring the public `leaderboard` view but scoped
+-- to one league's members. Guarded so only members can read it. Members with no
+-- settled predictions still appear (left join) so the roster is always complete.
+create or replace function public.league_leaderboard(p_league uuid)
+returns table (
+  user_id uuid,
+  display_name text,
+  total_points int,
+  exact_scores int,
+  correct_outcomes int,
+  total_predictions int
+)
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_league_member(p_league) then
+    raise exception 'Not a member of this league';
+  end if;
+  return query
+  select
+    m.user_id,
+    coalesce(u.display_name, u.username, 'Anonymous fan') as display_name,
+    coalesce(sum(p.points_awarded), 0)::int as total_points,
+    count(p.id) filter (where p.points_awarded = 5)::int as exact_scores,
+    count(p.id) filter (where p.points_awarded = 3)::int as correct_outcomes,
+    count(p.id)::int as total_predictions
+  from public.league_members m
+  join public.users u on u.id = m.user_id
+  left join public.predictions p on p.user_id = m.user_id
+  where m.league_id = p_league
+  group by m.user_id, u.display_name, u.username
+  order by total_points desc;
+end;
+$$;
+
+alter table public.leagues enable row level security;
+alter table public.league_members enable row level security;
+
+create policy "Members can read their leagues" on public.leagues
+  for select using (public.is_league_member(id));
+create policy "Owners can delete their leagues" on public.leagues
+  for delete using (owner_id = auth.uid());
+-- Creation is intentionally only via create_league() (definer) so the owner is
+-- always enrolled as a member; there is no direct insert policy.
+
+create policy "Members can read co-members" on public.league_members
+  for select using (public.is_league_member(league_id));
+create policy "Members can leave a league" on public.league_members
+  for delete using (user_id = auth.uid());
+-- Joining is only via join_league()/create_league() (definer); no insert policy.
+
+revoke all on public.leagues from anon, authenticated;
+revoke all on public.league_members from anon, authenticated;
+grant select, delete on public.leagues to authenticated;
+grant select, delete on public.league_members to authenticated;
+
+grant execute on function public.is_league_member(uuid) to authenticated;
+grant execute on function public.create_league(text) to authenticated;
+grant execute on function public.join_league(text) to authenticated;
+grant execute on function public.league_by_invite(text) to authenticated;
+grant execute on function public.league_leaderboard(uuid) to authenticated;
