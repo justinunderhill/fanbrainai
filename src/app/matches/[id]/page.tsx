@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation';
 import { PredictionAuthGate } from '@/components/PredictionAuthGate';
 import { SetupNotice } from '@/components/SetupNotice';
 import { TeamFlag } from '@/components/TeamFlag';
+import { TeamFormPanel } from '@/components/TeamForm';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { getTeamForm } from '@/lib/team-form';
 import { nextPredictableMatch } from '@/lib/next-action';
 import { formatKickoff } from '@/lib/utils';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
@@ -23,6 +25,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
   if (!data) notFound();
   const match = data as MatchWithTeams;
+
+  // Recent form for both sides, drawn from completed matches already in our DB
+  // (no extra API call). Shown above the prediction form so picks can be backed
+  // by how each team has actually been playing.
+  const [homeForm, awayForm] = await Promise.all([
+    getTeamForm(supabase, match.home_team.id),
+    getTeamForm(supabase, match.away_team.id),
+  ]);
 
   // Load the signed-in user's existing pick (if any) so the form can pre-fill
   // for editing rather than starting from defaults. RLS restricts this to the
@@ -78,6 +88,13 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         </div>
         <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)}{match.venue ? ` · ${match.venue}` : ''}</p>
       </section>
+
+      <TeamFormPanel
+        homeTeam={match.home_team}
+        awayTeam={match.away_team}
+        homeForm={homeForm}
+        awayForm={awayForm}
+      />
 
       <PredictionAuthGate match={match} initialPrediction={initialPrediction} nextMatch={nextMatch} />
     </div>
