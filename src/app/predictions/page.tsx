@@ -76,10 +76,15 @@ export default async function PredictionsPage() {
           )}
           {past.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-gray-400">Locked &amp; settled</h2>
-              {past.map(({ prediction, match }) => (
-                <PredictionRow key={prediction.id} prediction={prediction} match={match} editable={false} />
-              ))}
+              <h2 className="text-sm font-bold uppercase tracking-wide text-gray-400">
+                Locked &amp; settled
+                <span className="ml-2 text-gray-600">{past.length}</span>
+              </h2>
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                {past.map(({ prediction, match }) => (
+                  <PredictionRow key={prediction.id} prediction={prediction} match={match} editable={false} />
+                ))}
+              </div>
             </section>
           )}
         </div>

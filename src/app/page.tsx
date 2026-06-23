@@ -4,6 +4,7 @@ import { MatchCard } from '@/components/MatchCard';
 import { NextActionCard } from '@/components/NextActionCard';
 import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
 import { SetupNotice } from '@/components/SetupNotice';
+import { ShareButtons } from '@/components/ShareButtons';
 import { TeamFlag } from '@/components/TeamFlag';
 import { buildNextAction } from '@/lib/next-action';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
@@ -12,13 +13,24 @@ import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 async function getMatches() {
   const supabase = await createClient();
-  // Upcoming + in-progress matches, soonest first — so the homepage keeps a
-  // live game featured until it's final instead of pinning the tournament's
-  // first match as "Next up" forever. Live games sort ahead of scheduled ones.
+  // Scheduled (not-yet-kicked-off) matches only, soonest first — these drive the
+  // "Next up" feature and the upcoming grid. Live games are surfaced separately in
+  // their own section so they don't get mixed into "what to predict next".
   const { data } = await supabase
     .from('matches_with_teams')
     .select('*')
-    .in('status', ['scheduled', 'live'])
+    .eq('status', 'scheduled')
+    .order('kickoff_time', { ascending: true });
+  return (data ?? []) as MatchWithTeams[];
+}
+
+// In-progress matches for the dedicated "Live now" strip above the upcoming grid.
+async function getLiveMatches() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('matches_with_teams')
+    .select('*')
+    .eq('status', 'live')
     .order('kickoff_time', { ascending: true });
   return (data ?? []) as MatchWithTeams[];
 }
@@ -69,6 +81,7 @@ async function getRecap(): Promise<{ settled: RecapItem[]; rank: number | null }
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
   const matches = supabaseConfigured ? await getMatches() : [];
+  const liveMatches = supabaseConfigured ? await getLiveMatches() : [];
   const displayedMatches = matches.slice(0, 6);
   const featuredMatch = displayedMatches[0];
   const recap = supabaseConfigured ? await getRecap() : null;
@@ -129,6 +142,37 @@ export default async function Home() {
       </section>
 
       {nextAction && <NextActionCard action={nextAction} />}
+
+      <section>
+        <div className="mb-5">
+          <h2 className="text-2xl font-black">Spread the word</h2>
+          <p className="text-gray-400">Pull your friends into the World Cup chaos — more rivals, more bragging rights.</p>
+        </div>
+        <ShareButtons
+          path="/"
+          showImage={false}
+          tone="amber"
+          title="FanBrain AI"
+          heading="Invite friends to FanBrain"
+          blurb="Share the app so your group can predict, get AI verdicts, and battle for the leaderboard together."
+          shareText="Predicting the 2026 World Cup with FanBrain AI — make your calls and find out what kind of fan you really are ⚽"
+        />
+      </section>
+
+      {liveMatches.length > 0 && (
+        <section>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-red-300/40 bg-red-400/15 px-3 py-1 text-sm font-black text-red-100">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
+              Live now
+            </span>
+            <p className="text-gray-400">Matches in progress right now.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {liveMatches.map((match) => <MatchCard key={match.id} match={match} />)}
+          </div>
+        </section>
+      )}
 
       <section>
         {!supabaseConfigured && <div className="mb-5"><SetupNotice /></div>}

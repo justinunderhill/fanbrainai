@@ -16,6 +16,7 @@ export function ShareButtons({
   heading,
   blurb,
   tone = 'emerald',
+  showImage = true,
 }: {
   /** Relative path on the canonical site, e.g. `/r/<token>` or `/leaderboard`. */
   path: string;
@@ -28,6 +29,8 @@ export function ShareButtons({
   /** Supporting line under the heading. */
   blurb: string;
   tone?: 'emerald' | 'amber';
+  /** Whether to offer the "Share/Save image" button — only paths with an `/og` route have one. */
+  showImage?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [imageBusy, setImageBusy] = useState(false);
@@ -135,10 +138,12 @@ export function ShareButtons({
         </button>
       </div>
 
-      <button onClick={shareOrSaveImage} disabled={imageBusy} className="btn btn-primary mt-3 w-full px-4 py-2.5 text-sm">
-        {imageBusy ? <Loader2 size={16} className="animate-spin" /> : canShareImage ? <Share2 size={16} /> : <Download size={16} />}
-        {imageBusy ? 'Preparing image...' : canShareImage ? 'Share image' : 'Save image'}
-      </button>
+      {showImage && (
+        <button onClick={shareOrSaveImage} disabled={imageBusy} className="btn btn-primary mt-3 w-full px-4 py-2.5 text-sm">
+          {imageBusy ? <Loader2 size={16} className="animate-spin" /> : canShareImage ? <Share2 size={16} /> : <Download size={16} />}
+          {imageBusy ? 'Preparing image...' : canShareImage ? 'Share image' : 'Save image'}
+        </button>
+      )}
 
       {/* Uniform social grid so the buttons line up cleanly. */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">

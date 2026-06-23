@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { DebriefButton } from '@/components/DebriefButton';
 import { SharePredictionButton } from '@/components/SharePredictionButton';
 import { TeamFlag } from '@/components/TeamFlag';
@@ -92,23 +93,25 @@ export function PredictionRow({
 
       {isFinal && (
         <div className="mt-4 border-t border-white/10 pt-4">
-          {prediction.ai_debrief && (
-            <div className="mb-3 rounded-3xl border border-sky-400/30 bg-sky-400/10 p-4">
-              <p className="text-sm font-bold text-sky-200">AI Debrief</p>
-              <p className="mt-2 text-gray-100">{prediction.ai_debrief}</p>
-            </div>
-          )}
-          <DebriefButton predictionId={prediction.id} hasDebrief={Boolean(prediction.ai_debrief)} />
-          <SharePredictionButton
-            token={prediction.share_token}
-            homeTeam={match.home_team.name}
-            awayTeam={match.away_team.name}
-            homeScore={match.home_score ?? 0}
-            awayScore={match.away_score ?? 0}
-            predictedHome={prediction.predicted_home_score}
-            predictedAway={prediction.predicted_away_score}
-            points={prediction.points_awarded}
-          />
+          <CollapsibleSection label="AI debrief & share" openLabel="Hide debrief & share">
+            {prediction.ai_debrief && (
+              <div className="mb-3 rounded-3xl border border-sky-400/30 bg-sky-400/10 p-4">
+                <p className="text-sm font-bold text-sky-200">AI Debrief</p>
+                <p className="mt-2 text-gray-100">{prediction.ai_debrief}</p>
+              </div>
+            )}
+            <DebriefButton predictionId={prediction.id} hasDebrief={Boolean(prediction.ai_debrief)} />
+            <SharePredictionButton
+              token={prediction.share_token}
+              homeTeam={match.home_team.name}
+              awayTeam={match.away_team.name}
+              homeScore={match.home_score ?? 0}
+              awayScore={match.away_score ?? 0}
+              predictedHome={prediction.predicted_home_score}
+              predictedAway={prediction.predicted_away_score}
+              points={prediction.points_awarded}
+            />
+          </CollapsibleSection>
         </div>
       )}
     </div>
