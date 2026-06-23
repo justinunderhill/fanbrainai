@@ -7,6 +7,7 @@ import { BrainCircuit, Menu, X } from 'lucide-react';
 import { AuthNavLink } from '@/components/AuthNavLink';
 
 const NAV_LINKS = [
+  { href: '/', label: 'Home' },
   { href: '/matches', label: 'Matches' },
   { href: '/predictions', label: 'My Picks' },
   { href: '/leaderboard', label: 'Leaderboard' },
