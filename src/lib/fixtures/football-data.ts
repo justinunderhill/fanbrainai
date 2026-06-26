@@ -114,7 +114,11 @@ export type MatchRow = {
 };
 
 async function fetchJson(path: string, token: string) {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { 'X-Auth-Token': token } });
+  // `no-store`: each sync must see live standings. Without it Next.js can cache
+  // the upstream response and feed a stale snapshot into the sync, which then
+  // reverts freshly-finished matches back to 'scheduled' (see the downgrade guard
+  // in the sync route). Results must always reflect the current API state.
+  const res = await fetch(`${API_BASE}${path}`, { headers: { 'X-Auth-Token': token }, cache: 'no-store' });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`football-data ${path} -> HTTP ${res.status} ${body.slice(0, 200)}`);

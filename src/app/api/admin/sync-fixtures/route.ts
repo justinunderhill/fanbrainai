@@ -81,9 +81,24 @@ async function run(request: Request) {
     return NextResponse.json({ error: `teams upsert: ${teamErr.message}` }, { status: 500 });
   }
 
+  // Results only ever move forward. Guard against a stale upstream read (or a
+  // transient API blip) silently downgrading an already-final match back to
+  // 'scheduled' and wiping its settled score — that's what made played matches
+  // appear "un-played". Any incoming row that would demote a match we've already
+  // marked final is dropped; the rest upsert normally.
+  const { data: settled } = await supabase
+    .from('matches')
+    .select('external_match_id')
+    .eq('status', 'final');
+  const lockedFinal = new Set((settled ?? []).map((m) => m.external_match_id as string));
+  const matchesToWrite = matches.filter(
+    (m) => !(lockedFinal.has(m.external_match_id) && m.status !== 'final'),
+  );
+  const skippedDowngrades = matches.length - matchesToWrite.length;
+
   const { error: matchErr } = await supabase
     .from('matches')
-    .upsert(matches, { onConflict: 'external_match_id' });
+    .upsert(matchesToWrite, { onConflict: 'external_match_id' });
   if (matchErr) {
     return NextResponse.json({ error: `matches upsert: ${matchErr.message}` }, { status: 500 });
   }
@@ -133,7 +148,8 @@ async function run(request: Request) {
 
   return NextResponse.json({
     teamsUpserted: teams.length,
-    matchesUpserted: matches.length,
+    matchesUpserted: matchesToWrite.length,
+    skippedDowngrades,
     finalMatches: finalMatches?.length ?? 0,
     predictionsScored: scored,
     notifications,
