@@ -29,6 +29,8 @@ export type Prediction = {
   predicted_home_score: number;
   predicted_away_score: number;
   predicted_outcome: Outcome;
+  // Team the fan called to advance on penalties for a level knockout pick; null otherwise.
+  predicted_winner_team_id: string | null;
   prediction_style: PredictionStyle;
   user_reason: string | null;
   points_awarded: number;

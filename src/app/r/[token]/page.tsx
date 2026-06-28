@@ -5,12 +5,13 @@ import { Sparkles, Trophy } from 'lucide-react';
 import { TeamFlag } from '@/components/TeamFlag';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { pointsBadge } from '@/lib/scoring';
+import { advancingTeam } from '@/lib/utils';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
 
 type SharedPrediction = {
   prediction: Pick<
     Prediction,
-    'predicted_home_score' | 'predicted_away_score' | 'prediction_style' | 'points_awarded' | 'ai_debrief'
+    'predicted_home_score' | 'predicted_away_score' | 'predicted_winner_team_id' | 'prediction_style' | 'points_awarded' | 'ai_debrief'
   >;
   match: MatchWithTeams;
   displayName: string;
@@ -24,7 +25,7 @@ async function getSharedPrediction(token: string): Promise<SharedPrediction | nu
   const supabase = createAdminClient();
   const { data: prediction } = await supabase
     .from('predictions')
-    .select('user_id, match_id, predicted_home_score, predicted_away_score, prediction_style, points_awarded, ai_debrief')
+    .select('user_id, match_id, predicted_home_score, predicted_away_score, predicted_winner_team_id, prediction_style, points_awarded, ai_debrief')
     .eq('share_token', token)
     .maybeSingle();
 
@@ -128,6 +129,12 @@ export default async function SharedPredictionPage({ params }: { params: Promise
               <p className="text-3xl font-black tabular-nums text-emerald-300">
                 {prediction.predicted_home_score} – {prediction.predicted_away_score}
               </p>
+              {(() => {
+                const advance = advancingTeam(prediction.predicted_winner_team_id, match);
+                return advance ? (
+                  <p className="mt-1 text-sm font-bold text-amber-200">{advance.name} to advance on penalties</p>
+                ) : null;
+              })()}
             </div>
             <span className={`ml-auto rounded-full border px-4 py-2 text-sm font-bold ${badge.cls}`}>{badge.label}</span>
           </div>

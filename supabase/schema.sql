@@ -49,6 +49,9 @@ create table public.predictions (
   predicted_home_score int not null check (predicted_home_score >= 0 and predicted_home_score <= 15),
   predicted_away_score int not null check (predicted_away_score >= 0 and predicted_away_score <= 15),
   predicted_outcome public.prediction_outcome not null,
+  -- Team the fan calls to advance on penalties for a level knockout pick (null otherwise).
+  -- Mirrors matches.winner_team_id so the same scoring helper grades both sides.
+  predicted_winner_team_id uuid references public.teams(id),
   prediction_style public.prediction_style not null,
   user_reason text,
   locked_at timestamptz,
@@ -190,7 +193,7 @@ $$;
 
 drop trigger if exists prevent_late_prediction_trigger on public.predictions;
 create trigger prevent_late_prediction_trigger
-before insert or update of predicted_home_score, predicted_away_score, predicted_outcome, prediction_style, user_reason
+before insert or update of predicted_home_score, predicted_away_score, predicted_outcome, predicted_winner_team_id, prediction_style, user_reason
 on public.predictions
 for each row execute function public.prevent_late_prediction();
 
@@ -240,6 +243,7 @@ grant insert (
   predicted_home_score,
   predicted_away_score,
   predicted_outcome,
+  predicted_winner_team_id,
   prediction_style,
   user_reason
 ) on public.predictions to authenticated;
@@ -247,6 +251,7 @@ grant update (
   predicted_home_score,
   predicted_away_score,
   predicted_outcome,
+  predicted_winner_team_id,
   prediction_style,
   user_reason,
   ai_verdict,

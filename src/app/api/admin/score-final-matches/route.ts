@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         actualHomeScore: match.home_score,
         actualAwayScore: match.away_score,
         actualWinnerSide,
+        predictedWinnerSide: winnerSide(prediction.predicted_winner_team_id, match.home_team_id, match.away_team_id),
       });
 
       await supabase.from('predictions').update({ points_awarded: points }).eq('id', prediction.id);

@@ -6,7 +6,7 @@ import { SharePredictionButton } from '@/components/SharePredictionButton';
 import { TeamFlag } from '@/components/TeamFlag';
 import { pointsBadge } from '@/lib/scoring';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
-import { formatKickoff } from '@/lib/utils';
+import { advancingTeam, formatKickoff } from '@/lib/utils';
 
 const STYLE_LABELS: Record<PredictionStyle, string> = {
   head: 'Head says',
@@ -28,6 +28,7 @@ export function PredictionRow({
 }) {
   const isFinal = match.status === 'final';
   const badge = isFinal ? pointsBadge(prediction.points_awarded) : null;
+  const advance = advancingTeam(prediction.predicted_winner_team_id, match);
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
@@ -70,6 +71,11 @@ export function PredictionRow({
         <span className="rounded-full bg-white/5 px-3 py-1 text-sm font-bold text-gray-200">
           {STYLE_LABELS[prediction.prediction_style]}
         </span>
+        {advance && (
+          <span className="rounded-full bg-amber-400/15 px-3 py-1 text-sm font-bold text-amber-200">
+            {advance.name} to advance
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-3">
           {badge && (

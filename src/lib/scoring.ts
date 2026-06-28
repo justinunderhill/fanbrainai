@@ -14,6 +14,14 @@ export type ScoreInput = {
    * sync only knows a winner when football-data reports one — group draws stay draws).
    */
   actualWinnerSide?: 'HOME' | 'AWAY' | null;
+  /**
+   * The side the fan called to advance on penalties, for a level knockout prediction.
+   * Mirror of actualWinnerSide on the prediction side: when set it overrides the fan's
+   * scoreline-derived outcome (which would read DRAW) so a level knockout pick can match
+   * a penalty result. Only ever set when the predicted scoreline is level (the form gates
+   * it), so a decisive prediction is unaffected.
+   */
+  predictedWinnerSide?: 'HOME' | 'AWAY' | null;
 };
 
 /** Map a winning team id onto HOME/AWAY for a match, or null if it isn't either side. */
@@ -28,9 +36,10 @@ export function winnerSide(
 }
 
 export function scorePrediction(input: ScoreInput) {
-  const predictedOutcome = getOutcome(input.predictedHomeScore, input.predictedAwayScore);
-  // A team that advanced on penalties (level scoreline + known winner) counts as that
-  // side, not a draw; otherwise fall back to the scoreline outcome.
+  // A penalty call (level scoreline + chosen advancing side) counts as that side, not a
+  // draw; otherwise fall back to the scoreline outcome. Symmetric on both sides so a
+  // "1–1, France through" prediction can match a "1–1, France advanced" result.
+  const predictedOutcome = input.predictedWinnerSide ?? getOutcome(input.predictedHomeScore, input.predictedAwayScore);
   const actualOutcome = input.actualWinnerSide ?? getOutcome(input.actualHomeScore, input.actualAwayScore);
   const exactScore =
     input.predictedHomeScore === input.actualHomeScore &&

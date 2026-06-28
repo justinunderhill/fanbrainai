@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { MatchStatus } from '@/lib/types';
+import type { MatchStatus, Team } from '@/lib/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -52,6 +52,27 @@ export function fanTypePhrase(type: string): string {
   const trimmed = type.trim();
   if (/^(the|a|an)\s/i.test(trimmed)) return trimmed;
   return `${/^[aeiou]/i.test(trimmed) ? 'an' : 'a'} ${trimmed}`;
+}
+
+// Knockout matches (Round of 32 onward) can be settled on penalties, so a level
+// scoreline still has a winner. Stage is plain text seeded from football-data; the only
+// group label is 'Group stage' (see STAGE_LABELS in lib/fixtures/football-data.ts), so
+// anything else is a knockout tie.
+export function isKnockoutStage(stage: string): boolean {
+  return stage !== 'Group stage';
+}
+
+// Resolve a stored advance pick (predicted_winner_team_id) to one of the match's two
+// teams for display, or null when there's no pick. Shared by every surface that shows a
+// fan's "to advance on penalties" call.
+export function advancingTeam(
+  winnerTeamId: string | null,
+  match: { home_team: Team; away_team: Team },
+): Team | null {
+  if (!winnerTeamId) return null;
+  if (match.home_team.id === winnerTeamId) return match.home_team;
+  if (match.away_team.id === winnerTeamId) return match.away_team;
+  return null;
 }
 
 export function getOutcome(homeScore: number, awayScore: number) {

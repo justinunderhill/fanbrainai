@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Flame, Loader2, Minus, Sparkles, Trophy, X } from '
 import { TeamFlag } from '@/components/TeamFlag';
 import { SharePredictionButton } from '@/components/SharePredictionButton';
 import { currentStreak, pointsBadge } from '@/lib/scoring';
+import { advancingTeam } from '@/lib/utils';
 import { getServerSnapshot, getSnapshot, persist, subscribe } from '@/lib/recap-store';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
 
@@ -150,6 +151,10 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
                 </span>
                 <span className="text-sm text-gray-400">
                   you called <span className="font-bold text-emerald-300 tabular-nums">{prediction.predicted_home_score}–{prediction.predicted_away_score}</span>
+                  {(() => {
+                    const advance = advancingTeam(prediction.predicted_winner_team_id, match);
+                    return advance ? <span className="font-bold text-amber-200"> · {advance.name} through</span> : null;
+                  })()}
                 </span>
                 <span className={`ml-auto rounded-full border px-3 py-1 text-sm font-bold ${badge.cls}`}>{badge.label}</span>
               </div>

@@ -9,7 +9,7 @@ import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
 import { TeamFlag } from '@/components/TeamFlag';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
-import { getOutcome } from '@/lib/utils';
+import { getOutcome, isKnockoutStage } from '@/lib/utils';
 
 const styles: { value: PredictionStyle; label: string }[] = [
   { value: 'head', label: 'Head says' },
@@ -58,6 +58,9 @@ export function PredictionForm({
   // Seed from the existing pick (lazy initializers run once, so no flash).
   const [homeScore, setHomeScore] = useState(() => initialPrediction?.predicted_home_score ?? 1);
   const [awayScore, setAwayScore] = useState(() => initialPrediction?.predicted_away_score ?? 1);
+  // Which team the fan calls to advance on penalties; only meaningful for a level
+  // knockout pick (the toggle below). Seeded from the existing pick.
+  const [advanceTeamId, setAdvanceTeamId] = useState<string | null>(() => initialPrediction?.predicted_winner_team_id ?? null);
   const [predictionStyle, setPredictionStyle] = useState<PredictionStyle>(() => initialPrediction?.prediction_style ?? 'head');
   const [reason, setReason] = useState(() => initialPrediction?.user_reason ?? '');
   const [aiVerdict, setAiVerdict] = useState<string | null>(initialPrediction?.ai_verdict ?? null);
@@ -83,6 +86,11 @@ export function PredictionForm({
       : null,
   );
 
+  // A level knockout pick needs a winner — in the knockouts a draw can't stand, so we ask
+  // who goes through on penalties. Hidden for group games and decisive scorelines.
+  const showAdvanceToggle = isKnockoutStage(match.stage) && homeScore === awayScore;
+  const advanceMissing = showAdvanceToggle && !advanceTeamId;
+
   async function submitPrediction() {
     setLoading(true);
     setMessage(null);
@@ -95,12 +103,21 @@ export function PredictionForm({
       return;
     }
 
+    if (advanceMissing) {
+      setMessage('Pick who goes through on penalties — a draw can’t stand in the knockouts.');
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
 
     const predictionFields = {
       predicted_home_score: homeScore,
       predicted_away_score: awayScore,
       predicted_outcome: getOutcome(homeScore, awayScore),
+      // Only persist an advance pick for a level knockout call; clear it otherwise so a
+      // pick edited from a draw to a decisive score doesn't keep a stale winner.
+      predicted_winner_team_id: showAdvanceToggle ? advanceTeamId : null,
       prediction_style: predictionStyle,
       user_reason: reason,
     };
@@ -232,9 +249,15 @@ export function PredictionForm({
           <span className="rounded-full border border-amber-400/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">Locked</span>
         </div>
         <p className="mt-1 text-sm text-amber-200/80">Predictions are closed for this match — here&apos;s what you called.</p>
-        <div className="mt-4 flex items-center gap-3 text-amber-50">
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-amber-50">
           <span className="text-3xl font-black tabular-nums">{initialPrediction.predicted_home_score} – {initialPrediction.predicted_away_score}</span>
           <span className="rounded-full bg-amber-400/20 px-3 py-1 text-sm font-bold">{styleLabel}</span>
+          {(() => {
+            const advanceTeam = [match.home_team, match.away_team].find((t) => t.id === initialPrediction.predicted_winner_team_id);
+            return advanceTeam ? (
+              <span className="rounded-full bg-amber-400/20 px-3 py-1 text-sm font-bold">{advanceTeam.name} to advance</span>
+            ) : null;
+          })()}
         </div>
         {initialPrediction.user_reason && <p className="mt-3 text-sm text-amber-100/90">&ldquo;{initialPrediction.user_reason}&rdquo;</p>}
         {aiVerdict && <div className="mt-4 rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-sm font-bold text-emerald-200">AI Verdict</p><p className="mt-2 text-gray-100">{aiVerdict}</p></div>}
@@ -264,6 +287,34 @@ export function PredictionForm({
         <ScoreStepper team={match.away_team} value={awayScore} onChange={setAwayScore} />
       </div>
 
+      {showAdvanceToggle && (
+        <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-4">
+          <p className="text-sm font-bold text-amber-100">{match.stage} — who goes through on penalties?</p>
+          <p className="mt-1 text-xs text-amber-200/80">A draw can’t stand in the knockouts. Call the shootout to keep your pick alive.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Who advances on penalties">
+            {[match.home_team, match.away_team].map((team) => {
+              const selected = advanceTeamId === team.id;
+              return (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => setAdvanceTeamId(team.id)}
+                  aria-pressed={selected}
+                  className={`chip flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold ${
+                    selected
+                      ? 'scale-[1.03] border-amber-300 bg-amber-300 text-gray-950 shadow-glow-strong'
+                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-amber-300/40 hover:bg-white/10'
+                  }`}
+                >
+                  <TeamFlag team={team} size="sm" />
+                  <span className="truncate">{team.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Prediction style">
         {styles.map((item) => {
           const selected = predictionStyle === item.value;
@@ -288,7 +339,7 @@ export function PredictionForm({
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} aria-label="Why this pick? (optional)" placeholder="Optional: explain your pick in one sentence..." className="input-game mt-4 min-h-24 w-full rounded-2xl border border-white/10 bg-gray-950 px-4 py-3 text-sm" />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <button disabled={loading} onClick={submitPrediction} className="btn btn-primary px-6 py-3">
+        <button disabled={loading || advanceMissing} onClick={submitPrediction} className="btn btn-primary px-6 py-3">
           {loading && <Loader2 size={18} className="animate-spin" />}
           {loading ? 'Saving...' : isEditing ? 'Update prediction' : 'Save prediction'}
         </button>
