@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildWorldCupUpserts } from '@/lib/fixtures/football-data';
-import { scorePrediction } from '@/lib/scoring';
+import { scorePrediction, winnerSide } from '@/lib/scoring';
 import { sendResultNotifications } from '@/lib/notifications/send-result-notifications';
 import { sendPredictionReminders } from '@/lib/notifications/send-prediction-reminders';
 
@@ -106,13 +106,14 @@ async function run(request: Request) {
   // Settle points for matches that are now final with a known scoreline.
   const { data: finalMatches } = await supabase
     .from('matches')
-    .select('id,home_score,away_score')
+    .select('id,home_score,away_score,winner_team_id,home_team_id,away_team_id')
     .eq('status', 'final')
     .not('home_score', 'is', null)
     .not('away_score', 'is', null);
 
   let scored = 0;
   for (const match of finalMatches ?? []) {
+    const actualWinnerSide = winnerSide(match.winner_team_id, match.home_team_id, match.away_team_id);
     const { data: predictions } = await supabase.from('predictions').select('*').eq('match_id', match.id);
     for (const prediction of predictions ?? []) {
       const points = scorePrediction({
@@ -120,6 +121,7 @@ async function run(request: Request) {
         predictedAwayScore: prediction.predicted_away_score,
         actualHomeScore: match.home_score,
         actualAwayScore: match.away_score,
+        actualWinnerSide,
       });
       if (points !== prediction.points_awarded) {
         await supabase.from('predictions').update({ points_awarded: points }).eq('id', prediction.id);

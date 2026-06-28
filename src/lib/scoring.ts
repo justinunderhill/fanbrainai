@@ -6,11 +6,32 @@ export type ScoreInput = {
   predictedAwayScore: number;
   actualHomeScore: number;
   actualAwayScore: number;
+  /**
+   * The side that actually advanced, for knockout matches level after 90'/ET and
+   * decided on penalties. When set, it overrides the scoreline-derived outcome so a
+   * fan who called the advancing team banks the "right result" tier even though the
+   * full-time scoreline reads as a draw. Left undefined/null for genuine draws (the
+   * sync only knows a winner when football-data reports one — group draws stay draws).
+   */
+  actualWinnerSide?: 'HOME' | 'AWAY' | null;
 };
+
+/** Map a winning team id onto HOME/AWAY for a match, or null if it isn't either side. */
+export function winnerSide(
+  winnerTeamId: string | null,
+  homeTeamId: string,
+  awayTeamId: string,
+): 'HOME' | 'AWAY' | null {
+  if (winnerTeamId === homeTeamId) return 'HOME';
+  if (winnerTeamId === awayTeamId) return 'AWAY';
+  return null;
+}
 
 export function scorePrediction(input: ScoreInput) {
   const predictedOutcome = getOutcome(input.predictedHomeScore, input.predictedAwayScore);
-  const actualOutcome = getOutcome(input.actualHomeScore, input.actualAwayScore);
+  // A team that advanced on penalties (level scoreline + known winner) counts as that
+  // side, not a draw; otherwise fall back to the scoreline outcome.
+  const actualOutcome = input.actualWinnerSide ?? getOutcome(input.actualHomeScore, input.actualAwayScore);
   const exactScore =
     input.predictedHomeScore === input.actualHomeScore &&
     input.predictedAwayScore === input.actualAwayScore;
