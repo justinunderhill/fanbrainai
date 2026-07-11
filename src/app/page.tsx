@@ -11,57 +11,68 @@ import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { MatchWithTeams, Prediction } from '@/lib/types';
 
-async function getMatches() {
+type HomeData = {
+  matches: MatchWithTeams[];
+  liveMatches: MatchWithTeams[];
+  fanPredictions: { signedIn: boolean; predictions: Pick<Prediction, 'match_id'>[] };
+  recap: { settled: RecapItem[]; rank: number | null } | null;
+};
+
+async function getHomeData(): Promise<HomeData> {
   const supabase = await createClient();
-  // Scheduled (not-yet-kicked-off) matches only, soonest first — these drive the
-  // "Next up" feature and the upcoming grid. Live games are surfaced separately in
-  // their own section so they don't get mixed into "what to predict next".
-  const { data } = await supabase
-    .from('matches_with_teams')
-    .select('*')
-    .eq('status', 'scheduled')
-    .order('kickoff_time', { ascending: true });
-  return (data ?? []) as MatchWithTeams[];
-}
 
-// In-progress matches for the dedicated "Live now" strip above the upcoming grid.
-async function getLiveMatches() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('matches_with_teams')
-    .select('*')
-    .eq('status', 'live')
-    .order('kickoff_time', { ascending: true });
-  return (data ?? []) as MatchWithTeams[];
-}
+  // Scheduled matches drive "Next up" and the upcoming grid. Live games stay in
+  // their own strip so they don't get mixed into "what to predict next".
+  const [scheduledResult, liveResult, authResult] = await Promise.all([
+    supabase
+      .from('matches_with_teams')
+      .select('*')
+      .eq('status', 'scheduled')
+      .order('kickoff_time', { ascending: true }),
+    supabase
+      .from('matches_with_teams')
+      .select('*')
+      .eq('status', 'live')
+      .order('kickoff_time', { ascending: true }),
+    supabase.auth.getUser(),
+  ]);
 
-async function getFanPredictions(): Promise<{ signedIn: boolean; predictions: Pick<Prediction, 'match_id'>[] }> {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { signedIn: false, predictions: [] };
+  const matches = (scheduledResult.data ?? []) as MatchWithTeams[];
+  const liveMatches = (liveResult.data ?? []) as MatchWithTeams[];
+  const user = authResult.data.user;
 
-  const { data } = await supabase
-    .from('predictions')
-    .select('match_id')
-    .eq('user_id', auth.user.id);
+  if (!user) {
+    return {
+      matches,
+      liveMatches,
+      fanPredictions: { signedIn: false, predictions: [] },
+      recap: null,
+    };
+  }
 
-  return { signedIn: true, predictions: (data ?? []) as Pick<Prediction, 'match_id'>[] };
-}
-
-// Settled picks + current leaderboard rank for the signed-in fan's "return moment" recap.
-async function getRecap(): Promise<{ settled: RecapItem[]; rank: number | null } | null> {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
-
-  const { data: predictionData } = await supabase.from('predictions').select('*').eq('user_id', auth.user.id);
+  const { data: predictionData } = await supabase.from('predictions').select('*').eq('user_id', user.id);
   const predictions = (predictionData ?? []) as Prediction[];
-  if (predictions.length === 0) return { settled: [], rank: null };
+  if (predictions.length === 0) {
+    return {
+      matches,
+      liveMatches,
+      fanPredictions: { signedIn: true, predictions: [] },
+      recap: { settled: [], rank: null },
+    };
+  }
 
-  const { data: matchData } = await supabase
-    .from('matches_with_teams')
-    .select('*')
-    .in('id', predictions.map((p) => p.match_id));
+  const [matchResult, standingsResult] = await Promise.all([
+    supabase
+      .from('matches_with_teams')
+      .select('*')
+      .in('id', predictions.map((p) => p.match_id)),
+    supabase
+      .from('leaderboard')
+      .select('user_id, total_points')
+      .order('total_points', { ascending: false }),
+  ]);
+
+  const matchData = matchResult.data;
   const matchesById = new Map(((matchData ?? []) as MatchWithTeams[]).map((m) => [m.id, m]));
 
   const settled = predictions
@@ -69,23 +80,28 @@ async function getRecap(): Promise<{ settled: RecapItem[]; rank: number | null }
     .filter((r): r is RecapItem => Boolean(r.match) && r.match!.status === 'final')
     .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime());
 
-  const { data: standings } = await supabase
-    .from('leaderboard')
-    .select('user_id, total_points')
-    .order('total_points', { ascending: false });
-  const index = (standings ?? []).findIndex((row) => row.user_id === auth.user!.id);
+  const index = (standingsResult.data ?? []).findIndex((row) => row.user_id === user.id);
 
-  return { settled, rank: index >= 0 ? index + 1 : null };
+  return {
+    matches,
+    liveMatches,
+    fanPredictions: {
+      signedIn: true,
+      predictions: predictions.map(({ match_id }) => ({ match_id })),
+    },
+    recap: { settled, rank: index >= 0 ? index + 1 : null },
+  };
 }
 
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
-  const matches = supabaseConfigured ? await getMatches() : [];
-  const liveMatches = supabaseConfigured ? await getLiveMatches() : [];
+  const homeData = supabaseConfigured ? await getHomeData() : null;
+  const matches = homeData?.matches ?? [];
+  const liveMatches = homeData?.liveMatches ?? [];
   const displayedMatches = matches.slice(0, 6);
   const featuredMatch = displayedMatches[0];
-  const recap = supabaseConfigured ? await getRecap() : null;
-  const fanPredictions = supabaseConfigured ? await getFanPredictions() : null;
+  const recap = homeData?.recap ?? null;
+  const fanPredictions = homeData?.fanPredictions ?? null;
   const nextAction = fanPredictions
     ? buildNextAction({ signedIn: fanPredictions.signedIn, matches, predictions: fanPredictions.predictions })
     : null;

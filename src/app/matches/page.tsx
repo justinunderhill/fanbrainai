@@ -14,15 +14,19 @@ export default async function MatchesPage() {
 
   if (supabaseConfigured) {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from('matches_with_teams')
-      .select('*')
-      .order('kickoff_time', { ascending: true });
+    const [matchesResult, authResult] = await Promise.all([
+      supabase
+        .from('matches_with_teams')
+        .select('*')
+        .order('kickoff_time', { ascending: true }),
+      supabase.auth.getUser(),
+    ]);
+    const { data } = matchesResult;
     matches = (data ?? []) as MatchWithTeams[];
 
     // Mark which matches the signed-in user has already predicted so the grid
     // can flag them. RLS scopes this to the user's own rows.
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = authResult;
     if (user) {
       signedIn = true;
       const { data: predictions } = await supabase

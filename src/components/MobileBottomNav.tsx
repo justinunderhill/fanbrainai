@@ -17,7 +17,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-gray-950/95 px-3 pb-mobile-nav-safe pt-2 backdrop-blur md:hidden" aria-label="Primary">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-gray-950/95 px-3 pb-mobile-nav-safe pt-2 md:hidden" aria-label="Primary">
       <div className="mx-auto grid max-w-md grid-cols-6 gap-1">
         {ITEMS.map((item) => {
           // Home only lights up on the exact root; every other tab also matches its

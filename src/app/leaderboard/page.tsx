@@ -41,20 +41,27 @@ export default async function LeaderboardPage() {
 
   if (supabaseConfigured) {
     const supabase = await createClient();
-    const { data } = await supabase.from('leaderboard').select('*').order('total_points', { ascending: false }).limit(50);
+    const [leaderboardResult, authResult] = await Promise.all([
+      supabase.from('leaderboard').select('*').order('total_points', { ascending: false }).limit(50),
+      supabase.auth.getUser(),
+    ]);
+    const { data } = leaderboardResult;
     rows = (data ?? []) as Row[];
 
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = authResult;
     if (auth.user) {
-      const { data: mineData } = await supabase.from('leaderboard').select('*').eq('user_id', auth.user.id).maybeSingle();
+      const [mineResult, standingsResult] = await Promise.all([
+        supabase.from('leaderboard').select('*').eq('user_id', auth.user.id).maybeSingle(),
+        supabase
+          .from('leaderboard')
+          .select('user_id')
+          .order('total_points', { ascending: false }),
+      ]);
+      const { data: mineData } = mineResult;
       const mine = mineData as Row | null;
       if (mine) {
         // True rank may sit outside the top 50, so derive it from the full ordering.
-        const { data: standings } = await supabase
-          .from('leaderboard')
-          .select('user_id')
-          .order('total_points', { ascending: false });
-        const index = (standings ?? []).findIndex((r) => r.user_id === auth.user!.id);
+        const index = (standingsResult.data ?? []).findIndex((r) => r.user_id === auth.user!.id);
         me = { rank: index >= 0 ? index + 1 : null, row: mine };
       }
     }

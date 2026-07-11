@@ -25,16 +25,20 @@ export default async function PredictionsPage() {
     );
   }
 
-  const { data: predictionData } = await supabase
-    .from('predictions')
-    .select('*')
-    .eq('user_id', auth.user.id);
+  const [predictionResult, matchResult] = await Promise.all([
+    supabase
+      .from('predictions')
+      .select('*')
+      .eq('user_id', auth.user.id),
+    supabase
+      .from('matches_with_teams')
+      .select('*')
+      .order('kickoff_time', { ascending: true }),
+  ]);
+  const { data: predictionData } = predictionResult;
   const predictions = (predictionData ?? []) as Prediction[];
 
-  const { data: allMatchData } = await supabase
-    .from('matches_with_teams')
-    .select('*')
-    .order('kickoff_time', { ascending: true });
+  const { data: allMatchData } = matchResult;
   const allMatches = (allMatchData ?? []) as MatchWithTeams[];
   const matchesById = new Map(allMatches.map((m) => [m.id, m]));
   const nextAction = buildNextAction({ signedIn: true, matches: allMatches, predictions });

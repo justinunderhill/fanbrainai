@@ -29,38 +29,44 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
   // Recent form for both sides, drawn from completed matches already in our DB
   // (no extra API call). Shown above the prediction form so picks can be backed
   // by how each team has actually been playing.
-  const [homeForm, awayForm] = await Promise.all([
+  const [homeForm, awayForm, authResult] = await Promise.all([
     getTeamForm(supabase, match.home_team.id),
     getTeamForm(supabase, match.away_team.id),
+    supabase.auth.getUser(),
   ]);
 
   // Load the signed-in user's existing pick (if any) so the form can pre-fill
   // for editing rather than starting from defaults. RLS restricts this to the
   // user's own row.
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = authResult;
   let initialPrediction: Prediction | null = null;
   let nextMatch: MatchWithTeams | null = null;
   if (user) {
-    const { data: existing } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('match_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const [existingResult, predictionsResult, upcomingResult] = await Promise.all([
+      supabase
+        .from('predictions')
+        .select('*')
+        .eq('match_id', id)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('predictions')
+        .select('match_id')
+        .eq('user_id', user.id),
+      supabase
+        .from('matches_with_teams')
+        .select('*')
+        .eq('status', 'scheduled')
+        .order('kickoff_time', { ascending: true }),
+    ]);
+    const { data: existing } = existingResult;
     initialPrediction = (existing as Prediction | null) ?? null;
 
-    const { data: predictions } = await supabase
-      .from('predictions')
-      .select('match_id')
-      .eq('user_id', user.id);
+    const { data: predictions } = predictionsResult;
     const predictedIds = new Set((predictions ?? []).map((prediction) => prediction.match_id as string));
     predictedIds.add(id);
 
-    const { data: upcomingMatches } = await supabase
-      .from('matches_with_teams')
-      .select('*')
-      .eq('status', 'scheduled')
-      .order('kickoff_time', { ascending: true });
+    const { data: upcomingMatches } = upcomingResult;
     nextMatch = nextPredictableMatch((upcomingMatches ?? []) as MatchWithTeams[], predictedIds);
   }
 
