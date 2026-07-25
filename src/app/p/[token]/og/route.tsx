@@ -28,7 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     .maybeSingle();
 
   // Branded fallback when the token doesn't resolve, so the link still unfurls cleanly.
-  const personalityType = profile?.personality_type ?? 'World Cup fan';
+  const personalityType = profile?.personality_type ?? 'football fan';
   let displayName = 'A FanBrain fan';
   if (profile) {
     const { data: userRow } = await supabase.from('users').select('display_name').eq('id', profile.user_id).maybeSingle();
@@ -61,7 +61,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
           >
             FanBrain AI
           </div>
-          <div style={{ fontSize: '26px', color: '#94a3b8' }}>· World Cup fan personality</div>
+          <div style={{ fontSize: '26px', color: '#94a3b8' }}>· Football fan personality</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>

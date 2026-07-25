@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   // Branded fallback when the token doesn't resolve (or the match isn't final yet),
   // so the link still unfurls cleanly.
   const settled = Boolean(prediction && match && match.status === 'final');
-  const homeName = match?.home_team.name ?? 'World Cup';
+  const homeName = match?.home_team.name ?? 'Football';
   const awayName = match?.away_team.name ?? 'predictions';
   const finalScore = settled ? `${match!.home_score ?? 0} – ${match!.away_score ?? 0}` : '';
   const called = settled ? `${prediction!.predicted_home_score} – ${prediction!.predicted_away_score}` : '';
@@ -84,7 +84,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: '64px', fontWeight: 800, lineHeight: 1.1, color: '#ffffff' }}>
-              Rate every World Cup call
+              Rate every prediction
             </div>
             <div style={{ fontSize: '30px', marginTop: '12px', color: '#cbd5e1' }}>
               AI debriefs, points, and your fan personality.

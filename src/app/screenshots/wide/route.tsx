@@ -17,7 +17,7 @@ const SIZE = { width: 1280, height: 720 };
 const CACHE_HEADERS = { 'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' };
 
 const FEATURES = [
-  'Predict every World Cup match',
+  'Predict every match, from Premier League to Champions League',
   'AI rates and debriefs your calls',
   'Climb the leaderboard & build streaks',
 ];
@@ -47,7 +47,7 @@ export async function GET() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
           <div style={{ display: 'flex', fontSize: '76px', fontWeight: 800, lineHeight: 1.05, color: '#ffffff' }}>
-            Your World Cup, scored.
+            Your football, scored.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {FEATURES.map((f) => (

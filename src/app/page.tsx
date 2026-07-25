@@ -138,7 +138,7 @@ export default async function Home() {
             <div className="rounded-2xl border border-white/10 bg-gray-950/55 p-4 backdrop-blur">
               <Globe2 className="mb-3 text-sky-300" size={22} />
               <p className="text-sm font-black">Global fever</p>
-              <p className="mt-1 text-xs text-gray-300">Built for the 2026 World Cup buzz.</p>
+              <p className="mt-1 text-xs text-gray-300">Built for Premier League, Champions League &amp; more.</p>
             </div>
           </div>
           {featuredMatch && (
@@ -162,7 +162,7 @@ export default async function Home() {
       <section>
         <div className="mb-5">
           <h2 className="text-2xl font-black">Spread the word</h2>
-          <p className="text-gray-400">Pull your friends into the World Cup chaos — more rivals, more bragging rights.</p>
+          <p className="text-gray-400">Pull your friends into the football chaos — more rivals, more bragging rights.</p>
         </div>
         <ShareButtons
           path="/"
@@ -171,7 +171,7 @@ export default async function Home() {
           title="FanBrain AI"
           heading="Invite friends to FanBrain"
           blurb="Share the app so your group can predict, get AI verdicts, and battle for the leaderboard together."
-          shareText="Predicting the 2026 World Cup with FanBrain AI — make your calls and find out what kind of fan you really are ⚽"
+          shareText="Predicting Premier League, Champions League and more with FanBrain AI — make your calls and find out what kind of fan you really are ⚽"
         />
       </section>
 

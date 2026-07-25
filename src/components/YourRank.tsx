@@ -56,7 +56,7 @@ export function YourRank({
           title="My FanBrain rank"
           heading="Share your rank"
           blurb="Let the group chat know where you stand."
-          shareText={`I'm #${rank} on the FanBrain World Cup leaderboard with ${totalPoints} pts — think you can out-predict me?`}
+          shareText={`I'm #${rank} on the FanBrain leaderboard with ${totalPoints} pts — think you can out-predict me?`}
         />
       )}
     </div>

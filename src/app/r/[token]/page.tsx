@@ -98,7 +98,7 @@ export default async function SharedPredictionPage({ params }: { params: Promise
             <Trophy size={16} /> Prediction result
           </p>
           <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{displayName}&rsquo;s call</h1>
-          <p className="mt-3 text-gray-200">How this World Cup prediction held up once the final whistle blew.</p>
+          <p className="mt-3 text-gray-200">How this prediction held up once the final whistle blew.</p>
         </div>
       </section>
 
@@ -153,7 +153,7 @@ export default async function SharedPredictionPage({ params }: { params: Promise
         <div className="relative mx-auto max-w-xl">
           <Sparkles className="mx-auto text-amber-200" size={26} />
           <h2 className="mt-3 text-2xl font-black sm:text-3xl">Think you can call it better?</h2>
-          <p className="mt-3 text-gray-300">FanBrain rates every World Cup pick, hands down an AI debrief, and turns your calls into a fan personality.</p>
+          <p className="mt-3 text-gray-300">FanBrain rates every pick, hands down an AI debrief, and turns your calls into a fan personality.</p>
           <Link href="/" className="btn btn-primary mt-6 px-6 py-3">Try FanBrain</Link>
         </div>
       </section>

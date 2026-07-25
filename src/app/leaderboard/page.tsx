@@ -7,8 +7,8 @@ import { YourRank } from '@/components/YourRank';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
-const title = 'World Cup leaderboard · FanBrain AI';
-const description = 'These are the sharpest World Cup fan brains. Can you out-predict them?';
+const title = 'Leaderboard · FanBrain AI';
+const description = 'These are the sharpest football fan brains. Can you out-predict them?';
 
 export const metadata: Metadata = {
   title,
@@ -83,10 +83,10 @@ export default async function LeaderboardPage() {
               className="mt-4"
               buttonLabel="Share the leaderboard"
               path="/leaderboard"
-              title="FanBrain World Cup leaderboard"
+              title="FanBrain leaderboard"
               heading="Share the leaderboard"
               blurb="Challenge your group chat to climb the board."
-              shareText="These are the sharpest World Cup fan brains on FanBrain — think you can beat them?"
+              shareText="These are the sharpest football fan brains on FanBrain — think you can beat them?"
               tone="amber"
             />
           </div>

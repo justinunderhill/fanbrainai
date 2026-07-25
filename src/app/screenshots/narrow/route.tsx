@@ -40,7 +40,7 @@ export async function GET() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <div style={{ display: 'flex', fontSize: '72px', fontWeight: 800, lineHeight: 1.05, color: '#ffffff' }}>
-            Your World Cup, scored.
+            Your football, scored.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {FEATURES.map((f) => (

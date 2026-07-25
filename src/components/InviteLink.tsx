@@ -24,7 +24,7 @@ export function InviteLink({ inviteCode, leagueName }: { inviteCode: string; lea
       try {
         await navigator.share({
           title: `Join my FanBrain league: ${leagueName}`,
-          text: `Join my World Cup prediction league "${leagueName}" on FanBrain.`,
+          text: `Join my football prediction league "${leagueName}" on FanBrain.`,
           url,
         });
       } catch {

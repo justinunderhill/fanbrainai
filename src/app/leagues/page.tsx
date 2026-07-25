@@ -7,7 +7,7 @@ import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 const title = 'Private leagues · FanBrain AI';
-const description = 'Create a private World Cup prediction league and compete with your friends.';
+const description = 'Create a private football prediction league and compete with your friends.';
 
 export const metadata: Metadata = {
   title,

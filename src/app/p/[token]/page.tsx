@@ -89,7 +89,7 @@ export default async function SharedProfilePage({ params }: { params: Promise<{ 
             <BrainCircuit size={16} /> Fan personality
           </p>
           <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{displayName}&rsquo;s FanBrain profile</h1>
-          <p className="mt-3 text-gray-200">An AI personality read built from World Cup prediction behaviour.</p>
+          <p className="mt-3 text-gray-200">An AI personality read built from football prediction behaviour.</p>
         </div>
       </section>
 
@@ -116,7 +116,7 @@ export default async function SharedProfilePage({ params }: { params: Promise<{ 
       <section className="card-gradient relative overflow-hidden rounded-3xl border border-white/10 p-6 text-center shadow-glow sm:p-8">
         <span className="field-arc pointer-events-none absolute inset-x-5 top-0 h-20 opacity-60" />
         <div className="relative mx-auto max-w-xl">
-          <h2 className="text-2xl font-black sm:text-3xl">Find your World Cup fan personality</h2>
+          <h2 className="text-2xl font-black sm:text-3xl">Find your football fan personality</h2>
           <p className="mt-3 text-gray-300">FanBrain turns your match predictions into an AI fan profile and rates every pick.</p>
           <Link href="/" className="btn btn-primary mt-6 px-6 py-3">Try FanBrain</Link>
         </div>

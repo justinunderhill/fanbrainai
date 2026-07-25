@@ -51,7 +51,7 @@ export async function GET() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', fontSize: '30px', fontWeight: 800, letterSpacing: '-0.02em', color: '#6ee7b7' }}>FanBrain AI</div>
-          <div style={{ display: 'flex', fontSize: '26px', color: '#94a3b8' }}>· World Cup leaderboard</div>
+          <div style={{ display: 'flex', fontSize: '26px', color: '#94a3b8' }}>· Leaderboard</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
