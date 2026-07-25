@@ -6,10 +6,10 @@ import { ArrowRight, Flame, Loader2, Sparkles } from 'lucide-react';
 import type { MatchWithTeams, Prediction, PredictionStyle } from '@/lib/types';
 import { PushOptIn } from '@/components/PushOptIn';
 import { SignInToPredictPanel } from '@/components/SignInToPredictPanel';
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/lib/supabase/browser';
-import { getOutcome, isKnockoutStage } from '@/lib/utils';
+import { getOutcome } from '@/lib/utils';
 
 const styles: { value: PredictionStyle; label: string }[] = [
   { value: 'head', label: 'Head says' },
@@ -87,8 +87,8 @@ export function PredictionForm({
   );
 
   // A level knockout pick needs a winner — in the knockouts a draw can't stand, so we ask
-  // who goes through on penalties. Hidden for group games and decisive scorelines.
-  const showAdvanceToggle = isKnockoutStage(match.stage) && homeScore === awayScore;
+  // who goes through on penalties. Hidden for group/league games and decisive scorelines.
+  const showAdvanceToggle = match.is_knockout && homeScore === awayScore;
   const advanceMissing = showAdvanceToggle && !advanceTeamId;
 
   async function submitPrediction() {
@@ -306,7 +306,7 @@ export function PredictionForm({
                       : 'border-white/10 bg-white/5 text-gray-200 hover:border-amber-300/40 hover:bg-white/10'
                   }`}
                 >
-                  <TeamFlag team={team} size="sm" />
+                  <TeamBadge team={team} size="sm" />
                   <span className="truncate">{team.name}</span>
                 </button>
               );
@@ -401,7 +401,7 @@ function ScoreStepper({
   return (
     <div className="space-y-2">
       <span className="flex min-w-0 items-center gap-2 text-sm text-gray-300">
-        <TeamFlag team={team} size="sm" />
+        <TeamBadge team={team} size="sm" />
         <span className="truncate">{label}</span>
       </span>
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-gray-950 p-2">

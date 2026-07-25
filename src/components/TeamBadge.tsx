@@ -66,7 +66,7 @@ const sizeClass = {
   lg: 'h-14 w-16 rounded-2xl',
 };
 
-export function TeamFlag({ team, size = 'md' }: { team: Team; size?: keyof typeof sizeClass }) {
+export function TeamBadge({ team, size = 'md' }: { team: Team; size?: keyof typeof sizeClass }) {
   const flagCode = FLAG_CODE_BY_COUNTRY_CODE[team.country_code?.toUpperCase()];
   const fallback = team.emoji_flag ?? team.country_code ?? '?';
 
@@ -76,6 +76,10 @@ export function TeamFlag({ team, size = 'md' }: { team: Team; size?: keyof typeo
       title={team.name}
     >
       {flagCode ? (
+        // National team: flag lookup wins whenever it matches, so this is
+        // unchanged from before crests existed. football-data.org also
+        // returns a `crest` (federation badge) for national teams, but a
+        // flag reads better here than a federation logo.
         <Image
           src={`https://flagcdn.com/w80/${flagCode}.png`}
           width={80}
@@ -83,6 +87,20 @@ export function TeamFlag({ team, size = 'md' }: { team: Team; size?: keyof typeo
           alt={`${team.name} flag`}
           className="h-full w-full object-cover"
           loading="lazy"
+        />
+      ) : team.crest_url ? (
+        // No flag match means this is a club team (its country_code is a
+        // team abbreviation like 'MUN', not a real ISO country code) — show
+        // its crest instead. object-contain since crests are transparent
+        // badges, not rectangular photos.
+        <Image
+          src={team.crest_url}
+          width={80}
+          height={80}
+          alt={`${team.name} crest`}
+          className="h-full w-full object-contain p-1"
+          loading="lazy"
+          unoptimized
         />
       ) : (
         <span className="text-sm font-black text-gray-200">{fallback}</span>

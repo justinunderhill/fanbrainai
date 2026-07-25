@@ -92,7 +92,7 @@ function mapStatus(status: string): MatchStatus {
   }
 }
 
-type RawTeam = { id: number; name: string; tla: string | null; area?: { code?: string } };
+type RawTeam = { id: number; name: string; tla: string | null; crest?: string | null; area?: { code?: string } };
 type RawMatch = {
   id: number;
   utcDate: string;
@@ -112,6 +112,7 @@ export type TeamRow = {
   country_code: string;
   group_name: string | null;
   emoji_flag: string;
+  crest_url: string | null;
 };
 
 export type MatchRow = {
@@ -176,6 +177,7 @@ export async function buildUpserts(token: string, competition: CompetitionRef): 
     country_code: t.tla ?? t.area?.code ?? '',
     group_name: groupByTeamId.get(t.id) ?? null,
     emoji_flag: flagFor(t.area?.code),
+    crest_url: t.crest ?? null,
   }));
 
   const matches: MatchRow[] = [];

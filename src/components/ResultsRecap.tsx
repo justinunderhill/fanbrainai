@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowUp, Flame, Loader2, Minus, Sparkles, Trophy, X } from 'lucide-react';
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import { SharePredictionButton } from '@/components/SharePredictionButton';
 import { currentStreak, pointsBadge } from '@/lib/scoring';
 import { advancingTeam } from '@/lib/utils';
@@ -143,11 +143,11 @@ export function ResultsRecap({ settled, rank }: { settled: RecapItem[]; rank: nu
             <div key={prediction.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <span className="inline-flex items-center gap-2 font-bold">
-                  <TeamFlag team={match.home_team} size="sm" />
+                  <TeamBadge team={match.home_team} size="sm" />
                   <span className="tabular-nums">
                     {match.home_score ?? 0} – {match.away_score ?? 0}
                   </span>
-                  <TeamFlag team={match.away_team} size="sm" />
+                  <TeamBadge team={match.away_team} size="sm" />
                 </span>
                 <span className="text-sm text-gray-400">
                   you called <span className="font-bold text-emerald-300 tabular-nums">{prediction.predicted_home_score}–{prediction.predicted_away_score}</span>

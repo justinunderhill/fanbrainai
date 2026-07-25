@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { PredictionAuthGate } from '@/components/PredictionAuthGate';
 import { SetupNotice } from '@/components/SetupNotice';
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import { TeamFormPanel } from '@/components/TeamForm';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -81,13 +81,13 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
         </div>
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="min-w-0">
-            <TeamFlag team={match.home_team} size="lg" />
+            <TeamBadge team={match.home_team} size="lg" />
             <h1 className="mt-3 truncate text-2xl font-black">{match.home_team.name}</h1>
           </div>
           <div className="rounded-3xl border border-white/10 bg-gray-950/60 px-5 py-3 text-2xl font-black shadow-[0_0_30px_rgba(16,185,129,0.18)] backdrop-blur">vs</div>
           <div className="min-w-0 text-right">
             <div className="ml-auto w-fit">
-              <TeamFlag team={match.away_team} size="lg" />
+              <TeamBadge team={match.away_team} size="lg" />
             </div>
             <h1 className="mt-3 truncate text-2xl font-black">{match.away_team.name}</h1>
           </div>

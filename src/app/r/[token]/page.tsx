@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Sparkles, Trophy } from 'lucide-react';
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { pointsBadge } from '@/lib/scoring';
 import { advancingTeam } from '@/lib/utils';
@@ -109,7 +109,7 @@ export default async function SharedPredictionPage({ params }: { params: Promise
 
           <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="min-w-0">
-              <TeamFlag team={match.home_team} size="sm" />
+              <TeamBadge team={match.home_team} size="sm" />
               <h2 className="truncate text-lg font-black sm:text-xl">{match.home_team.name}</h2>
             </div>
             <div className="rounded-2xl bg-white/10 px-5 py-3 text-2xl font-black tabular-nums sm:text-3xl">
@@ -117,7 +117,7 @@ export default async function SharedPredictionPage({ params }: { params: Promise
             </div>
             <div className="min-w-0 text-right">
               <div className="ml-auto w-fit">
-                <TeamFlag team={match.away_team} size="sm" />
+                <TeamBadge team={match.away_team} size="sm" />
               </div>
               <h2 className="truncate text-lg font-black sm:text-xl">{match.away_team.name}</h2>
             </div>

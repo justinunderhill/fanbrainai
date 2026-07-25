@@ -56,14 +56,6 @@ export function fanTypePhrase(type: string): string {
   return `${/^[aeiou]/i.test(trimmed) ? 'an' : 'a'} ${trimmed}`;
 }
 
-// Knockout matches (Round of 32 onward) can be settled on penalties, so a level
-// scoreline still has a winner. Stage is plain text seeded from football-data; the only
-// group label is 'Group stage' (see STAGE_LABELS in lib/fixtures/football-data.ts), so
-// anything else is a knockout tie.
-export function isKnockoutStage(stage: string): boolean {
-  return stage !== 'Group stage';
-}
-
 // Resolve a stored advance pick (predicted_winner_team_id) to one of the match's two
 // teams for display, or null when there's no pick. Shared by every surface that shows a
 // fan's "to advance on penalties" call.

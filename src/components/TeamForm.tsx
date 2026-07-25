@@ -1,4 +1,4 @@
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import type { Team } from '@/lib/types';
 import type { FormResult, TeamForm as TeamFormData } from '@/lib/team-form';
 
@@ -31,7 +31,7 @@ function TeamFormCard({ team, form }: { team: Team; form: TeamFormData }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <div className="flex items-center gap-2">
-        <TeamFlag team={team} size="sm" />
+        <TeamBadge team={team} size="sm" />
         <span className="min-w-0 flex-1 truncate text-sm font-black">{team.name}</span>
         {played > 0 && (
           <span className="shrink-0 text-xs font-bold tabular-nums text-gray-400">
@@ -62,7 +62,7 @@ function TeamFormCard({ team, form }: { team: Team; form: TeamFormData }) {
                   {m.teamScore}–{m.opponentScore}
                 </span>
                 <span className="text-gray-500">vs</span>
-                <TeamFlag
+                <TeamBadge
                   team={{ ...m.opponent, id: '', group_name: null } as Team}
                   size="sm"
                 />

@@ -5,7 +5,7 @@ import { NextActionCard } from '@/components/NextActionCard';
 import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
 import { SetupNotice } from '@/components/SetupNotice';
 import { ShareButtons } from '@/components/ShareButtons';
-import { TeamFlag } from '@/components/TeamFlag';
+import { TeamBadge } from '@/components/TeamBadge';
 import { buildNextAction } from '@/lib/next-action';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -146,10 +146,10 @@ export default async function Home() {
               <Trophy size={17} className="shrink-0 text-amber-200" />
               <span className="inline-flex min-w-0 items-center gap-2 font-bold">
                 <span className="shrink-0">Next up:</span>
-                <TeamFlag team={featuredMatch.home_team} size="sm" />
+                <TeamBadge team={featuredMatch.home_team} size="sm" />
                 <span className="truncate">{featuredMatch.home_team.name}</span>
                 <span className="shrink-0 text-gray-400">vs</span>
-                <TeamFlag team={featuredMatch.away_team} size="sm" />
+                <TeamBadge team={featuredMatch.away_team} size="sm" />
                 <span className="truncate">{featuredMatch.away_team.name}</span>
               </span>
             </div>
