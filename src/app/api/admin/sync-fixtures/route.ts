@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { buildWorldCupUpserts } from '@/lib/fixtures/football-data';
+import { buildUpserts, type MatchRow, type TeamRow } from '@/lib/fixtures/football-data';
 import { scorePrediction, winnerSide } from '@/lib/scoring';
 import { sendResultNotifications } from '@/lib/notifications/send-result-notifications';
 import { sendPredictionReminders } from '@/lib/notifications/send-prediction-reminders';
@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * Syncs WC 2026 fixtures + results from football-data.org, then settles points
- * for any newly-final matches. Idempotent — safe to run on a schedule.
+ * Syncs fixtures + results for every active football-data.org competition,
+ * then settles points for any newly-final matches. Idempotent — safe to run
+ * on a schedule. One competition's fetch failing doesn't stop the others.
  *
  * Auth: `Authorization: Bearer <CRON_SECRET>` (Vercel Cron) or `x-cron-secret`.
  * One-time cleanup of the old placeholder seed data: append `?purgeSeed=1`.
@@ -44,15 +45,36 @@ async function run(request: Request) {
   const supabase = createAdminClient();
   const purgeSeed = new URL(request.url).searchParams.get('purgeSeed') === '1';
 
-  let teams;
-  let matches;
-  try {
-    ({ teams, matches } = await buildWorldCupUpserts(token));
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Fixture fetch failed' },
-      { status: 502 },
-    );
+  const { data: activeCompetitions, error: competitionsErr } = await supabase
+    .from('competitions')
+    .select('id, provider_code, season')
+    .eq('provider', 'football-data')
+    .eq('is_active', true);
+  if (competitionsErr) {
+    return NextResponse.json({ error: `competitions lookup: ${competitionsErr.message}` }, { status: 500 });
+  }
+
+  // Fetch every active football-data competition independently — one
+  // competition's provider hiccup (rate limit, transient 5xx) shouldn't stop
+  // the rest of the sync.
+  const teams: TeamRow[] = [];
+  const matches: MatchRow[] = [];
+  const competitionResults: Record<string, { teams: number; matches: number } | { error: string }> = {};
+  for (const competition of activeCompetitions ?? []) {
+    try {
+      const result = await buildUpserts(token, {
+        id: competition.id,
+        providerCode: competition.provider_code,
+        season: competition.season,
+      });
+      teams.push(...result.teams);
+      matches.push(...result.matches);
+      competitionResults[competition.provider_code] = { teams: result.teams.length, matches: result.matches.length };
+    } catch (error) {
+      competitionResults[competition.provider_code] = {
+        error: error instanceof Error ? error.message : 'Fixture fetch failed',
+      };
+    }
   }
 
   // One-time removal of the placeholder seed data (and any test predictions on
@@ -90,7 +112,7 @@ async function run(request: Request) {
     .from('matches')
     .select('external_match_id')
     .eq('status', 'final');
-  const lockedFinal = new Set((settled ?? []).map((m) => m.external_match_id as string));
+  const lockedFinal = new Set((settled ?? []).map((m: { external_match_id: string }) => m.external_match_id));
   const matchesToWrite = matches.filter(
     (m) => !(lockedFinal.has(m.external_match_id) && m.status !== 'final'),
   );
@@ -150,6 +172,7 @@ async function run(request: Request) {
   }
 
   return NextResponse.json({
+    competitions: competitionResults,
     teamsUpserted: teams.length,
     matchesUpserted: matchesToWrite.length,
     skippedDowngrades,

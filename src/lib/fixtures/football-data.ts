@@ -1,19 +1,17 @@
 /**
- * football-data.org adapter for FIFA World Cup 2026.
- *
- * Fetches teams + matches from competition `WC` (season 2026) and normalizes
- * them into rows for our `teams` and `matches` tables. Re-running is idempotent:
- * teams use a deterministic UUID (v5) derived from the football-data id, and
- * matches upsert by `external_match_id` — so the same job both seeds fixtures
- * and syncs results as scores come in.
+ * football-data.org adapter. Fetches teams + matches for a given competition
+ * (identified by the provider's own competition code, e.g. `WC`, `PL`, `CL`)
+ * and season, and normalizes them into rows for our `teams` and `matches`
+ * tables. Re-running is idempotent: teams use a deterministic UUID (v5)
+ * derived from the football-data id, and matches upsert by
+ * `external_match_id` — so the same job both seeds fixtures and syncs
+ * results as scores come in.
  *
  * Server-only. Never import into client components (uses the API token).
  */
 import { createHash } from 'node:crypto';
 
 const API_BASE = 'https://api.football-data.org/v4';
-const COMPETITION = 'WC';
-const SEASON = '2026';
 
 // Fixed namespace so team ids are stable across runs/machines.
 const UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
@@ -57,6 +55,22 @@ const STAGE_LABELS: Record<string, string> = {
   THIRD_PLACE: 'Third-place playoff',
   FINAL: 'Final',
 };
+
+// Explicit allowlist of football-data stage codes that are knockout ties (a
+// level scoreline needs a penalty-shootout winner). Anything not listed here
+// — GROUP_STAGE, a league's REGULAR_SEASON, or any other unmapped code —
+// is NOT a knockout tie, so an ordinary league draw is never misidentified
+// as one. Deliberately the inverse of the old isKnockoutStage() heuristic
+// (src/lib/utils.ts), which treated everything except the literal string
+// 'Group stage' as a knockout.
+const KNOCKOUT_STAGE_CODES = new Set([
+  'LAST_32',
+  'LAST_16',
+  'QUARTER_FINALS',
+  'SEMI_FINALS',
+  'THIRD_PLACE',
+  'FINAL',
+]);
 
 type MatchStatus = 'scheduled' | 'live' | 'final' | 'postponed';
 
@@ -102,15 +116,25 @@ export type TeamRow = {
 
 export type MatchRow = {
   external_match_id: string;
+  competition_id: string;
   home_team_id: string;
   away_team_id: string;
   kickoff_time: string;
   venue: string | null;
   stage: string;
+  is_knockout: boolean;
   status: MatchStatus;
   home_score: number | null;
   away_score: number | null;
   winner_team_id: string | null;
+};
+
+/** One row from the `competitions` table, as much as this adapter needs. */
+export type CompetitionRef = {
+  id: string;
+  /** football-data's own competition code, e.g. 'WC', 'PL', 'CL'. */
+  providerCode: string;
+  season: string;
 };
 
 async function fetchJson(path: string, token: string) {
@@ -126,11 +150,11 @@ async function fetchJson(path: string, token: string) {
   return res.json();
 }
 
-/** Fetch + normalize WC 2026 into upsert-ready team and match rows. */
-export async function buildWorldCupUpserts(token: string): Promise<{ teams: TeamRow[]; matches: MatchRow[] }> {
+/** Fetch + normalize one competition/season into upsert-ready team and match rows. */
+export async function buildUpserts(token: string, competition: CompetitionRef): Promise<{ teams: TeamRow[]; matches: MatchRow[] }> {
   const [teamsData, matchesData] = await Promise.all([
-    fetchJson(`/competitions/${COMPETITION}/teams?season=${SEASON}`, token),
-    fetchJson(`/competitions/${COMPETITION}/matches?season=${SEASON}`, token),
+    fetchJson(`/competitions/${competition.providerCode}/teams?season=${competition.season}`, token),
+    fetchJson(`/competitions/${competition.providerCode}/matches?season=${competition.season}`, token),
   ]);
 
   const rawTeams: RawTeam[] = teamsData.teams ?? [];
@@ -170,11 +194,13 @@ export async function buildWorldCupUpserts(token: string): Promise<{ teams: Team
 
     matches.push({
       external_match_id: `fd-${m.id}`,
+      competition_id: competition.id,
       home_team_id: teamUuid(m.homeTeam.id),
       away_team_id: teamUuid(m.awayTeam.id),
       kickoff_time: m.utcDate,
       venue: m.venue ?? null,
       stage: STAGE_LABELS[m.stage] ?? m.stage,
+      is_knockout: KNOCKOUT_STAGE_CODES.has(m.stage),
       status,
       home_score: status === 'final' || status === 'live' ? home : null,
       away_score: status === 'final' || status === 'live' ? away : null,

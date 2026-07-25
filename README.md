@@ -1,6 +1,8 @@
 # FanBrain AI
 
-A mobile-first AI football engagement app. Fans predict match scores, get AI verdicts and safe roasts, earn points, and unlock a dynamic fan personality profile.
+A mobile-first, social sports prediction and fan-engagement app. Fans predict match scores, get AI verdicts and safe roasts, earn points and streaks, compete in private leagues, and unlock a dynamic fan personality profile.
+
+Launched for the 2026 World Cup; now expanding into a year-round football platform (Premier League, UEFA Champions League, South African Premiership), with rugby, cricket, and Formula 1 planned after football is established. See `docs/product/PRODUCT_STRATEGY.md` for positioning and roadmap, and `docs/architecture/CURRENT_STATE_AUDIT.md` + `docs/architecture/DATA_MODEL.md` for where the codebase stands on that expansion.
 
 This is an unofficial fan engagement project. Do not use official tournament marks, logos, or assets unless you have permission.
 
@@ -111,6 +113,16 @@ so components derive state during render. This was a deliberate **zero-DDL** cho
 no migration and suits a friends/family audience. The only tradeoff is per-device state (seen/rank
 are not synced across a user's devices). Future upgrade path if cross-device sync is ever wanted:
 add a `users.last_recap_seen_at` column and read/write it server-side instead.
+
+## Current status & roadmap
+
+The World Cup 2026 loop (predict → AI verdict → score → leaderboard → share) is live in production. Multi-competition expansion is in the architecture/planning phase — see `docs/` for the full picture:
+
+- `docs/architecture/CURRENT_STATE_AUDIT.md` — what's hardcoded to one tournament today.
+- `docs/architecture/DATA_MODEL.md` — the additive schema change (draft migration at `supabase/migrations/0004_competitions.sql`, not yet applied to production).
+- `docs/data-providers/PROVIDER_EVALUATION.md` — football-data.org (PL/CL) + API-Football (South African Premiership) provider decision.
+- `docs/rollout/FOOTBALL_MVP.md` — rollout stages and acceptance criteria for the football expansion.
+- `docs/decisions/` — ADRs recording the provider-neutral adapter pattern and the decision to defer a full multi-sport domain model until a second sport is actually in scope.
 
 ## Fixture data
 

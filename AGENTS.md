@@ -1,7 +1,13 @@
 # AGENTS.md — FanBrain AI
 
 ## Project mission
-Build **FanBrain AI**, a mobile-first AI football engagement app for the 2026 World Cup. This is not a betting product and not an official FIFA product. It lets fans make predictions, get AI-powered verdicts/roasts/debriefs, and build a dynamic fan personality profile based on their prediction behaviour.
+Build **FanBrain AI**, a mobile-first, social sports prediction and fan-engagement app. Launched for the 2026 World Cup; now expanding into a year-round, multi-competition football platform (see `docs/product/PRODUCT_STRATEGY.md`), with rugby/cricket/F1 planned after football is established. This is not a betting product and not an official FIFA/league product. It lets fans make predictions, get AI-powered verdicts/roasts/debriefs, and build a dynamic fan personality profile based on their prediction behaviour.
+
+## Architecture rules for the multi-competition expansion
+- **Provider-neutral data layer** (ADR-001, `docs/decisions/ADR-001-provider-neutral-sports-data.md`): the frontend and prediction/settlement logic never call a commercial sports API directly. All provider data passes through a per-provider adapter in `src/lib/fixtures/` that normalizes into FanBrain's own row shapes before touching Supabase. No commercial API key may reach the browser bundle.
+- **Migrations, not manual schema edits**: inspect `supabase/schema.sql` and existing migrations before changing anything. New schema changes are additive migration files (`supabase/migrations/000N_*.sql`), never edits to live tables by hand. Preserve production data — existing World Cup rows must keep rendering after any migration.
+- **Don't build the full generic multi-sport model yet** (ADR-002, `docs/decisions/ADR-002-generic-event-and-prediction-model.md`): while only football is in scope, use the `competitions`/`matches.competition_id` shape in `docs/architecture/DATA_MODEL.md`, not a speculative `sports`/`prediction_market_types`/`settlement_runs` engine. Revisit that ADR before adding rugby.
+- **Backward compatibility**: the existing World Cup experience (predictions, leaderboard, share pages) must keep working exactly as before through any migration or refactor in this expansion.
 
 ## Product principles
 1. **AI-first, not AI-for-show**: AI should interpret, explain, classify, and entertain. It must not fabricate match facts, scores, fixtures, injuries, odds, or official tournament details.
