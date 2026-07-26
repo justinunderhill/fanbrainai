@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { SerwistProvider } from '@serwist/turbopack/react';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <PushSync />
           </AuthProvider>
         </SerwistProvider>
+        <Analytics />
       </body>
     </html>
   );
