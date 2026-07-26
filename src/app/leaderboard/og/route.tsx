@@ -21,18 +21,23 @@ const MEDALS = ['#fbbf24', '#cbd5e1', '#f59e0b'];
 
 export async function GET() {
   const supabase = createAdminClient();
+  // Same default scope as /leaderboard: active competitions only, so a shared
+  // link doesn't unfurl with a retired tournament's numbers baked in.
   const { data } = await supabase
-    .from('leaderboard')
+    .rpc('leaderboard', { p_competition_id: null })
     .select('user_id, display_name, total_points, exact_scores, total_predictions')
     .order('total_points', { ascending: false })
     .limit(3);
   const podium = (data ?? []) as Row[];
 
   // Aggregate footer stats across the whole board (not just the podium).
-  const { data: allRows } = await supabase.from('leaderboard').select('total_predictions, exact_scores');
-  const fans = allRows?.length ?? 0;
-  const picks = (allRows ?? []).reduce((sum, r) => sum + (r.total_predictions ?? 0), 0);
-  const exact = (allRows ?? []).reduce((sum, r) => sum + (r.exact_scores ?? 0), 0);
+  const { data: allRowsData } = await supabase
+    .rpc('leaderboard', { p_competition_id: null })
+    .select('total_predictions, exact_scores');
+  const allRows = (allRowsData ?? []) as { total_predictions: number; exact_scores: number }[];
+  const fans = allRows.length;
+  const picks = allRows.reduce((sum, r) => sum + (r.total_predictions ?? 0), 0);
+  const exact = allRows.reduce((sum, r) => sum + (r.exact_scores ?? 0), 0);
 
   return new ImageResponse(
     (

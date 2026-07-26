@@ -47,7 +47,7 @@ async function run(request: Request) {
 
   const { data: activeCompetitions, error: competitionsErr } = await supabase
     .from('competitions')
-    .select('id, provider_code, season')
+    .select('id, provider_code, season, type')
     .eq('provider', 'football-data')
     .eq('is_active', true);
   if (competitionsErr) {
@@ -66,6 +66,7 @@ async function run(request: Request) {
         id: competition.id,
         providerCode: competition.provider_code,
         season: competition.season,
+        type: competition.type === 'national' ? 'national' : 'club',
       });
       teams.push(...result.teams);
       matches.push(...result.matches);

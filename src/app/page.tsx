@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BrainCircuit, Flame, Globe2, Trophy } from 'lucide-react';
+import { BrainCircuit, Crown, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
 import { NextActionCard } from '@/components/NextActionCard';
 import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
@@ -7,9 +7,31 @@ import { SetupNotice } from '@/components/SetupNotice';
 import { ShareButtons } from '@/components/ShareButtons';
 import { TeamBadge } from '@/components/TeamBadge';
 import { buildNextAction } from '@/lib/next-action';
+import { getStandings } from '@/lib/standings';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
-import type { MatchWithTeams, Prediction } from '@/lib/types';
+import type { Competition, MatchWithTeams, Prediction } from '@/lib/types';
+
+type TopOfTheLog = { competition: Competition; leader: Awaited<ReturnType<typeof getStandings>>[number] | null };
+
+// Quick "who's top" glance per active competition, so a fan doesn't have to
+// open the full /table page just to check the league leader.
+async function getTopOfTheLog(): Promise<TopOfTheLog[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('competitions')
+    .select('id, code, name, season, is_active')
+    .eq('is_active', true)
+    .order('name');
+  const competitions = (data ?? []) as Competition[];
+
+  return Promise.all(
+    competitions.map(async (competition) => {
+      const rows = await getStandings(supabase, competition.id);
+      return { competition, leader: rows[0] ?? null };
+    }),
+  );
+}
 
 type HomeData = {
   matches: MatchWithTeams[];
@@ -66,8 +88,9 @@ async function getHomeData(): Promise<HomeData> {
       .from('matches_with_teams')
       .select('*')
       .in('id', predictions.map((p) => p.match_id)),
+    // Rank uses the same default scope as /leaderboard: active competitions only.
     supabase
-      .from('leaderboard')
+      .rpc('leaderboard', { p_competition_id: null })
       .select('user_id, total_points')
       .order('total_points', { ascending: false }),
   ]);
@@ -80,7 +103,8 @@ async function getHomeData(): Promise<HomeData> {
     .filter((r): r is RecapItem => Boolean(r.match) && r.match!.status === 'final')
     .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime());
 
-  const index = (standingsResult.data ?? []).findIndex((row) => row.user_id === user.id);
+  const standings = (standingsResult.data ?? []) as { user_id: string }[];
+  const index = standings.findIndex((row) => row.user_id === user.id);
 
   return {
     matches,
@@ -95,7 +119,10 @@ async function getHomeData(): Promise<HomeData> {
 
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
-  const homeData = supabaseConfigured ? await getHomeData() : null;
+  const [homeData, topOfTheLog] = await Promise.all([
+    supabaseConfigured ? getHomeData() : Promise.resolve(null),
+    supabaseConfigured ? getTopOfTheLog() : Promise.resolve([]),
+  ]);
   const matches = homeData?.matches ?? [];
   const liveMatches = homeData?.liveMatches ?? [];
   const displayedMatches = matches.slice(0, 6);
@@ -158,6 +185,44 @@ export default async function Home() {
       </section>
 
       {nextAction && <NextActionCard action={nextAction} />}
+
+      {topOfTheLog.some((t) => t.leader) && (
+        <section>
+          <div className="mb-5 flex items-end justify-between">
+            <div>
+              <h2 className="text-2xl font-black">Top of the log</h2>
+              <p className="text-gray-400">Who&apos;s leading each competition right now.</p>
+            </div>
+            <Link href="/table" className="text-sm font-bold text-emerald-300">Full table</Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {topOfTheLog
+              .filter((t) => t.leader)
+              .map(({ competition, leader }) => (
+                <Link
+                  key={competition.id}
+                  href={`/table?competition=${competition.code}`}
+                  className="card-gradient card-interactive flex items-center gap-3 rounded-3xl border border-white/10 p-5 shadow-glow"
+                >
+                  <span className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-3 text-amber-200">
+                    <Crown size={20} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{competition.name}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <TeamBadge team={leader!.team} size="sm" />
+                      <span className="truncate font-black text-white">{leader!.team.name}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xl font-black tabular-nums text-emerald-300">{leader!.points}</p>
+                    <p className="text-xs text-gray-400">pts</p>
+                  </div>
+                </Link>
+              ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="mb-5">

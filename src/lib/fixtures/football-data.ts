@@ -113,6 +113,7 @@ export type TeamRow = {
   group_name: string | null;
   emoji_flag: string;
   crest_url: string | null;
+  is_national_team: boolean;
 };
 
 export type MatchRow = {
@@ -136,6 +137,9 @@ export type CompetitionRef = {
   /** football-data's own competition code, e.g. 'WC', 'PL', 'CL'. */
   providerCode: string;
   season: string;
+  /** 'national' for a national-team tournament (WC), 'club' otherwise. Decides
+   *  each synced team's is_national_team flag (see 0008 migration). */
+  type: 'club' | 'national';
 };
 
 async function fetchJson(path: string, token: string) {
@@ -178,6 +182,7 @@ export async function buildUpserts(token: string, competition: CompetitionRef): 
     group_name: groupByTeamId.get(t.id) ?? null,
     emoji_flag: flagFor(t.area?.code),
     crest_url: t.crest ?? null,
+    is_national_team: competition.type === 'national',
   }));
 
   const matches: MatchRow[] = [];

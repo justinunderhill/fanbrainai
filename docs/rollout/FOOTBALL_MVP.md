@@ -30,23 +30,23 @@
 
 ## Acceptance criteria
 
-- [ ] `competitions` table exists with PL, Champions League, PSL, and the backfilled WC2026 rows.
-- [ ] `/api/admin/sync-fixtures` syncs all active competitions, not just one hardcoded call.
-- [ ] A league match ending in a draw never shows the penalty-advance prompt.
-- [ ] A Champions League knockout match ending level still shows it.
-- [ ] `/matches` can be filtered by competition.
-- [ ] Global leaderboard behavior is unchanged when no competition filter is applied (World Cup history intact).
-- [ ] A new private league can be scoped to a single competition.
+- [x] `competitions` table exists with PL, Champions League, PSL, and the backfilled WC2026 rows.
+- [x] `/api/admin/sync-fixtures` syncs all active competitions, not just one hardcoded call.
+- [x] A league match ending in a draw never shows the penalty-advance prompt.
+- [x] A Champions League knockout match ending level still shows it.
+- [x] `/matches` can be filtered by competition.
+- [x] ~~Global leaderboard behavior is unchanged when no competition filter is applied~~ **Reversed 2026-07-26**: the default (no filter) leaderboard now scopes to active competitions only, so a retired tournament's points don't linger forever — same "declutter, keep reachable" treatment as `/matches`. WC2026 stats are still fully viewable via `/leaderboard?competition=WC2026`.
+- [x] A new private league can be scoped to a single competition.
 - [ ] Cron runs year-round, not just June/July.
-- [ ] "World Cup"-hardcoded copy that would now read wrong is updated (title, share cards, OG images — see `CURRENT_STATE_AUDIT.md`'s file list).
+- [x] "World Cup"-hardcoded copy that would now read wrong is updated (title, share cards, OG images — see `CURRENT_STATE_AUDIT.md`'s file list).
 
 ## Rollout stages
 
-1. Apply `0004_competitions.sql` in staging/dev Supabase project first; verify existing World Cup data renders unchanged.
-2. Ship the parameterized football-data.org adapter + updated sync route, still only syncing WC2026 (regression check — nothing should change for existing users yet).
-3. Add Premier League + Champions League via football-data.org (same provider, just a new `competitions` row each) — lowest-risk new-competition test since no new provider is involved.
-4. Add the API-Football adapter and South African Premiership behind it.
-5. Ship the competition filter UI and league-scoping UI.
+1. ~~Apply `0004_competitions.sql` in staging/dev Supabase project first; verify existing World Cup data renders unchanged.~~ DONE.
+2. ~~Ship the parameterized football-data.org adapter + updated sync route, still only syncing WC2026 (regression check — nothing should change for existing users yet).~~ DONE.
+3. ~~Add Premier League + Champions League via football-data.org (same provider, just a new `competitions` row each) — lowest-risk new-competition test since no new provider is involved.~~ DONE.
+4. Add the API-Football adapter and South African Premiership behind it. **Blocked on data rights** — see `docs/data-providers/PROVIDER_EVALUATION.md` and memory `data-provider-licensing`: API-Football's ToS disclaims any license to publish PSL data in our product and flags fantasy/prediction use as needing rights from the actual league/federation. Needs direct outreach to API-Football/PSL/CAF before this adapter ships as more than a dev-only experiment.
+5. ~~Ship the competition filter UI and league-scoping UI.~~ DONE 2026-07-26: `/matches` defaults to active competitions only, with archived tournaments (WC2026) reachable via an explicit "Past tournaments" filter (`CompetitionFilter`, `?competition=` param). Private leagues can be scoped to one active competition at creation (`create_league(p_name, p_competition_id)`), and `league_leaderboard()` filters by it. WC2026 flipped to `is_active = false` in migration `0007`.
 6. Remove the cron date-guard, confirmed once all of the above is stable.
 
 ## Explicitly out of scope for this release

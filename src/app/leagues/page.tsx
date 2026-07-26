@@ -5,6 +5,7 @@ import { CreateLeagueForm } from '@/components/CreateLeagueForm';
 import { SetupNotice } from '@/components/SetupNotice';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import type { Competition } from '@/lib/types';
 
 const title = 'Private leagues · FanBrain AI';
 const description = 'Create a private football prediction league and compete with your friends.';
@@ -15,7 +16,14 @@ export const metadata: Metadata = {
   alternates: { canonical: '/leagues' },
 };
 
-type LeagueRow = { id: string; name: string; owner_id: string; invite_code: string; created_at: string };
+type LeagueRow = {
+  id: string;
+  name: string;
+  owner_id: string;
+  invite_code: string;
+  created_at: string;
+  competition_id: string | null;
+};
 
 export default async function LeaguesPage() {
   if (!hasSupabasePublicEnv()) {
@@ -36,11 +44,16 @@ export default async function LeaguesPage() {
   }
 
   // RLS scopes this to leagues the user is a member of.
-  const { data: leagueData } = await supabase
-    .from('leagues')
-    .select('id, name, owner_id, invite_code, created_at')
-    .order('created_at', { ascending: false });
-  const leagues = (leagueData ?? []) as LeagueRow[];
+  const [leagueResult, competitionsResult] = await Promise.all([
+    supabase
+      .from('leagues')
+      .select('id, name, owner_id, invite_code, created_at, competition_id')
+      .order('created_at', { ascending: false }),
+    supabase.from('competitions').select('id, code, name, season, is_active').order('name'),
+  ]);
+  const leagues = (leagueResult.data ?? []) as LeagueRow[];
+  const competitions = (competitionsResult.data ?? []) as Competition[];
+  const competitionNameById = new Map(competitions.map((c) => [c.id, c.name]));
   const currentUserId = auth.user.id;
 
   // Member counts for the leagues we can see (RLS lets members read co-members).
@@ -68,7 +81,7 @@ export default async function LeaguesPage() {
         </div>
       </section>
 
-      <CreateLeagueForm />
+      <CreateLeagueForm competitions={competitions} />
 
       {leagues.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-gray-950/45 p-10 text-center shadow-glow">
@@ -89,6 +102,9 @@ export default async function LeaguesPage() {
                 <p className="mt-1 text-sm text-gray-400">
                   {(counts.get(league.id) ?? 0)} {(counts.get(league.id) ?? 0) === 1 ? 'member' : 'members'}
                   {league.owner_id === currentUserId ? ' · you own this' : ''}
+                  {league.competition_id && competitionNameById.has(league.competition_id)
+                    ? ` · ${competitionNameById.get(league.competition_id)}`
+                    : ''}
                 </p>
               </div>
               <span className="rounded-2xl border border-white/10 bg-gray-950/60 p-3 text-emerald-200">

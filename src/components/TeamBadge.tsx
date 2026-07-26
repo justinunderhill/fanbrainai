@@ -67,7 +67,11 @@ const sizeClass = {
 };
 
 export function TeamBadge({ team, size = 'md' }: { team: Team; size?: keyof typeof sizeClass }) {
-  const flagCode = FLAG_CODE_BY_COUNTRY_CODE[team.country_code?.toUpperCase()];
+  // is_national_team is set explicitly at sync time (which competition type
+  // the team came from), not inferred from country_code — that heuristic
+  // broke on any club whose 3-letter code collides with a real ISO code
+  // (e.g. Chelsea FC's TLA 'CHE' also being Switzerland's ISO code).
+  const flagCode = team.is_national_team ? FLAG_CODE_BY_COUNTRY_CODE[team.country_code?.toUpperCase()] : undefined;
   const fallback = team.emoji_flag ?? team.country_code ?? '?';
 
   return (
@@ -76,10 +80,8 @@ export function TeamBadge({ team, size = 'md' }: { team: Team; size?: keyof type
       title={team.name}
     >
       {flagCode ? (
-        // National team: flag lookup wins whenever it matches, so this is
-        // unchanged from before crests existed. football-data.org also
-        // returns a `crest` (federation badge) for national teams, but a
-        // flag reads better here than a federation logo.
+        // National team: flag reads better than football-data's federation
+        // crest, when we have a flag for its ISO code.
         <Image
           src={`https://flagcdn.com/w80/${flagCode}.png`}
           width={80}
@@ -89,10 +91,9 @@ export function TeamBadge({ team, size = 'md' }: { team: Team; size?: keyof type
           loading="lazy"
         />
       ) : team.crest_url ? (
-        // No flag match means this is a club team (its country_code is a
-        // team abbreviation like 'MUN', not a real ISO country code) — show
-        // its crest instead. object-contain since crests are transparent
-        // badges, not rectangular photos.
+        // Club team, or a national team with no flag-code mapping — show its
+        // crest. object-contain since crests are transparent badges, not
+        // rectangular photos.
         <Image
           src={team.crest_url}
           width={80}

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type LeagueRow = { id: string; name: string; owner_id: string; invite_code: string };
+type LeagueRow = { id: string; name: string; owner_id: string; invite_code: string; competition_id: string | null };
 type StandingRow = {
   user_id: string;
   display_name: string | null;
@@ -53,11 +53,21 @@ export default async function LeagueDetailPage({ params }: { params: Promise<{ i
   // RLS only returns the league row if the viewer is a member.
   const { data: leagueData } = await supabase
     .from('leagues')
-    .select('id, name, owner_id, invite_code')
+    .select('id, name, owner_id, invite_code, competition_id')
     .eq('id', id)
     .maybeSingle();
   if (!leagueData) notFound();
   const league = leagueData as LeagueRow;
+
+  let competitionName: string | null = null;
+  if (league.competition_id) {
+    const { data: competitionData } = await supabase
+      .from('competitions')
+      .select('name')
+      .eq('id', league.competition_id)
+      .maybeSingle();
+    competitionName = competitionData?.name ?? null;
+  }
 
   // Members-only standings via the guarded RPC.
   const { data: standingsData } = await supabase.rpc('league_leaderboard', { p_league: id });
@@ -80,7 +90,8 @@ export default async function LeagueDetailPage({ params }: { params: Promise<{ i
           </p>
           <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{league.name}</h1>
           <p className="mt-3 text-gray-200">
-            {rows.length} {rows.length === 1 ? 'member' : 'members'} · points use the same scoring as the global board.
+            {rows.length} {rows.length === 1 ? 'member' : 'members'} · points use the same scoring as the global board
+            {competitionName ? ` · ${competitionName} only` : ''}.
           </p>
         </div>
       </section>

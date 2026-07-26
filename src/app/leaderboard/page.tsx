@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Medal, Sparkles, Trophy } from 'lucide-react';
 import { CollapsibleShare } from '@/components/CollapsibleShare';
+import { CompetitionFilter } from '@/components/CompetitionFilter';
 import { SetupNotice } from '@/components/SetupNotice';
 import { YourRank } from '@/components/YourRank';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import type { Competition } from '@/lib/types';
 
 const title = 'Leaderboard · FanBrain AI';
 const description = 'These are the sharpest football fan brains. Can you out-predict them?';
@@ -34,26 +36,44 @@ function rankTone(index: number) {
   return 'border-white/10 bg-white/[0.03] text-gray-200';
 }
 
-export default async function LeaderboardPage() {
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ competition?: string }>;
+}) {
+  const { competition: selectedCode } = await searchParams;
   const supabaseConfigured = hasSupabasePublicEnv();
   let rows: Row[] = [];
   let me: { rank: number | null; row: Row } | null = null;
+  let competitions: Competition[] = [];
 
   if (supabaseConfigured) {
     const supabase = await createClient();
-    const [leaderboardResult, authResult] = await Promise.all([
-      supabase.from('leaderboard').select('*').order('total_points', { ascending: false }).limit(50),
+    const [competitionsResult, authResult] = await Promise.all([
+      supabase.from('competitions').select('id, code, name, season, is_active').order('name'),
       supabase.auth.getUser(),
     ]);
-    const { data } = leaderboardResult;
+    competitions = (competitionsResult.data ?? []) as Competition[];
+
+    // Default (no selection) scopes to active competitions only, so a retired
+    // tournament's points don't linger on "the" leaderboard forever — an
+    // explicit ?competition= code (including an archived one) always wins.
+    const selected = selectedCode ? competitions.find((c) => c.code === selectedCode) : undefined;
+    const competitionId = selected?.id ?? null;
+
+    const { data } = await supabase
+      .rpc('leaderboard', { p_competition_id: competitionId })
+      .select('*')
+      .order('total_points', { ascending: false })
+      .limit(50);
     rows = (data ?? []) as Row[];
 
     const { data: auth } = authResult;
     if (auth.user) {
       const [mineResult, standingsResult] = await Promise.all([
-        supabase.from('leaderboard').select('*').eq('user_id', auth.user.id).maybeSingle(),
+        supabase.rpc('leaderboard', { p_competition_id: competitionId }).select('*').eq('user_id', auth.user.id).maybeSingle(),
         supabase
-          .from('leaderboard')
+          .rpc('leaderboard', { p_competition_id: competitionId })
           .select('user_id')
           .order('total_points', { ascending: false }),
       ]);
@@ -61,7 +81,8 @@ export default async function LeaderboardPage() {
       const mine = mineData as Row | null;
       if (mine) {
         // True rank may sit outside the top 50, so derive it from the full ordering.
-        const index = (standingsResult.data ?? []).findIndex((r) => r.user_id === auth.user!.id);
+        const standings = (standingsResult.data ?? []) as { user_id: string }[];
+        const index = standings.findIndex((r) => r.user_id === auth.user!.id);
         me = { rank: index >= 0 ? index + 1 : null, row: mine };
       }
     }
@@ -99,6 +120,15 @@ export default async function LeaderboardPage() {
       </section>
 
       {!supabaseConfigured && <SetupNotice />}
+
+      {competitions.length > 0 && (
+        <CompetitionFilter
+          competitions={competitions}
+          selectedCode={selectedCode ?? null}
+          basePath="/leaderboard"
+          allLabel="All active"
+        />
+      )}
 
       {me && (
         <YourRank

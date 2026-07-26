@@ -8,9 +8,19 @@ export type Team = {
   country_code: string;
   group_name: string | null;
   emoji_flag: string | null;
-  // Club crest image URL (football-data.org `crest` field). Null for national
-  // teams, which render a flag instead (see TeamBadge).
+  // Club crest image URL (football-data.org `crest` field). Populated for
+  // both clubs and national federations, so `is_national_team` (not the
+  // presence of this field) decides whether TeamBadge shows it or a flag.
   crest_url: string | null;
+  is_national_team: boolean;
+};
+
+export type Competition = {
+  id: string;
+  code: string;
+  name: string;
+  season: string;
+  is_active: boolean;
 };
 
 export type MatchWithTeams = {

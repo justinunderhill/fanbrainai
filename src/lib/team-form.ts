@@ -20,7 +20,7 @@ export type TeamFormMatch = {
   result: FormResult;
   teamScore: number;
   opponentScore: number;
-  opponent: Pick<Team, 'name' | 'country_code' | 'emoji_flag' | 'crest_url'>;
+  opponent: Pick<Team, 'name' | 'country_code' | 'emoji_flag' | 'crest_url' | 'is_national_team'>;
 };
 
 export type TeamForm = {
@@ -33,7 +33,13 @@ export type TeamForm = {
 };
 
 // Shape of the embedded opponent rows PostgREST returns for the two team FKs.
-type EmbeddedTeam = { name: string; country_code: string; emoji_flag: string | null; crest_url: string | null };
+type EmbeddedTeam = {
+  name: string;
+  country_code: string;
+  emoji_flag: string | null;
+  crest_url: string | null;
+  is_national_team: boolean;
+};
 type RawFormRow = {
   id: string;
   kickoff_time: string;
@@ -64,8 +70,8 @@ export async function getTeamForm(
     .from('matches')
     .select(
       'id, kickoff_time, stage, home_score, away_score, home_team_id, away_team_id, ' +
-        'home:home_team_id(name, country_code, emoji_flag, crest_url), ' +
-        'away:away_team_id(name, country_code, emoji_flag, crest_url)',
+        'home:home_team_id(name, country_code, emoji_flag, crest_url, is_national_team), ' +
+        'away:away_team_id(name, country_code, emoji_flag, crest_url, is_national_team)',
     )
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .eq('status', 'final')
@@ -98,6 +104,7 @@ export async function getTeamForm(
           country_code: opponentRaw.country_code,
           emoji_flag: opponentRaw.emoji_flag,
           crest_url: opponentRaw.crest_url,
+          is_national_team: opponentRaw.is_national_team,
         },
       };
     })
