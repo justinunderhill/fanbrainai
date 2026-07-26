@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BrainCircuit, Crown, Flame, Globe2, Trophy } from 'lucide-react';
+import { BrainCircuit, Clock, Crown, Flame, Globe2, Trophy } from 'lucide-react';
 import { MatchCard } from '@/components/MatchCard';
 import { NextActionCard } from '@/components/NextActionCard';
 import { ResultsRecap, type RecapItem } from '@/components/ResultsRecap';
@@ -31,6 +31,47 @@ async function getTopOfTheLog(): Promise<TopOfTheLog[]> {
       return { competition, leader: rows[0] ?? null };
     }),
   );
+}
+
+type NextTournament = { competitionName: string; daysUntil: number };
+
+/**
+ * "Days until X kicks off" for the home page — targets whichever active
+ * competition hasn't played a single match yet (no live/final rows), picking
+ * the one with the soonest scheduled kickoff. Purely derived from synced
+ * fixtures, so it needs no manually-maintained date: it naturally points at
+ * Champions League once its 2026-27 fixtures publish (see [[multi-sport-expansion]]),
+ * and disappears on its own the moment that competition's first match kicks off.
+ * Days computed here (server fetch), not in the component body — Date.now() is
+ * an impure call the React Compiler forbids during render.
+ */
+async function getNextTournamentCountdown(): Promise<NextTournament | null> {
+  const supabase = await createClient();
+  const { data: competitionsData } = await supabase.from('competitions').select('id, name').eq('is_active', true);
+  const competitions = (competitionsData ?? []) as { id: string; name: string }[];
+  if (competitions.length === 0) return null;
+
+  const { data: matchesData } = await supabase
+    .from('matches')
+    .select('competition_id, status, kickoff_time')
+    .in('competition_id', competitions.map((c) => c.id));
+  const matches = (matchesData ?? []) as { competition_id: string; status: string; kickoff_time: string }[];
+
+  let best: { competitionName: string; kickoffTime: string } | null = null;
+  for (const competition of competitions) {
+    const compMatches = matches.filter((m) => m.competition_id === competition.id);
+    if (compMatches.some((m) => m.status === 'final' || m.status === 'live')) continue;
+    const scheduled = compMatches.filter((m) => m.status === 'scheduled');
+    if (scheduled.length === 0) continue;
+    const earliest = scheduled.reduce((a, b) => (new Date(a.kickoff_time) < new Date(b.kickoff_time) ? a : b));
+    if (!best || new Date(earliest.kickoff_time) < new Date(best.kickoffTime)) {
+      best = { competitionName: competition.name, kickoffTime: earliest.kickoff_time };
+    }
+  }
+  if (!best) return null;
+
+  const daysUntil = Math.ceil((new Date(best.kickoffTime).getTime() - Date.now()) / 86_400_000);
+  return daysUntil > 0 ? { competitionName: best.competitionName, daysUntil } : null;
 }
 
 type HomeData = {
@@ -119,9 +160,10 @@ async function getHomeData(): Promise<HomeData> {
 
 export default async function Home() {
   const supabaseConfigured = hasSupabasePublicEnv();
-  const [homeData, topOfTheLog] = await Promise.all([
+  const [homeData, topOfTheLog, nextTournament] = await Promise.all([
     supabaseConfigured ? getHomeData() : Promise.resolve(null),
     supabaseConfigured ? getTopOfTheLog() : Promise.resolve([]),
+    supabaseConfigured ? getNextTournamentCountdown() : Promise.resolve(null),
   ]);
   const matches = homeData?.matches ?? [];
   const liveMatches = homeData?.liveMatches ?? [];
@@ -143,6 +185,12 @@ export default async function Home() {
           <p className="mb-4 inline-flex rounded-full border border-amber-300/35 bg-amber-300/12 px-4 py-2 text-sm font-bold text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.16)]">
             AI football engagement lab
           </p>
+          {nextTournament && (
+            <p className="mb-4 ml-2 inline-flex items-center gap-2 rounded-full border border-sky-300/35 bg-sky-400/12 px-4 py-2 text-sm font-bold text-sky-100">
+              <Clock size={16} />
+              {nextTournament.daysUntil} {nextTournament.daysUntil === 1 ? 'day' : 'days'} until {nextTournament.competitionName} kicks off
+            </p>
+          )}
           <h1 className="text-4xl font-black tracking-tight md:text-6xl">Make your predictions. Let AI reveal what kind of fan you really are.</h1>
           <p className="mt-5 max-w-2xl text-lg text-gray-200">
             FanBrain AI turns match predictions into AI verdicts, safe roasts, post-match debriefs, and dynamic fan personalities. No betting. Just football brains, chaos, and bragging rights.

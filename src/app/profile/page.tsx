@@ -64,13 +64,22 @@ export default async function ProfilePage() {
   });
   let streak = { current: 0, best: 0 };
   if (predictions.length > 0) {
-    const { data: matchData } = await supabase
-      .from('matches_with_teams')
-      .select('id, status, kickoff_time')
-      .in('id', predictions.map((p) => p.match_id))
-      .eq('status', 'final');
+    // Scoped to active competitions, same as the default leaderboard — otherwise
+    // a run that includes an archived tournament's matches (e.g. WC2026) would
+    // read differently here than the points total the leaderboard shows.
+    const [{ data: matchData }, { data: activeCompetitionsData }] = await Promise.all([
+      supabase
+        .from('matches_with_teams')
+        .select('id, status, kickoff_time, competition_id')
+        .in('id', predictions.map((p) => p.match_id))
+        .eq('status', 'final'),
+      supabase.from('competitions').select('id').eq('is_active', true),
+    ]);
+    const activeCompetitionIds = new Set((activeCompetitionsData ?? []).map((c) => c.id as string));
     const matchesById = new Map(
-      ((matchData ?? []) as Pick<MatchWithTeams, 'id' | 'status' | 'kickoff_time'>[]).map((m) => [m.id, m]),
+      ((matchData ?? []) as Pick<MatchWithTeams, 'id' | 'status' | 'kickoff_time' | 'competition_id'>[])
+        .filter((m) => activeCompetitionIds.has(m.competition_id))
+        .map((m) => [m.id, m]),
     );
     const settled = predictions
       .map((prediction) => ({ prediction, match: matchesById.get(prediction.match_id) }))

@@ -44,9 +44,12 @@ export default async function TablePage({
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-black">
-          <Table2 className="text-emerald-300" size={28} /> League table
+          <Table2 className="text-emerald-300" size={28} /> FanBrain table
         </h1>
         <p className="mt-2 text-gray-400">The current log for each competition — who&apos;s top right now.</p>
+        <p className="mt-1 text-xs text-gray-500">
+          Unofficial — built from results we&apos;ve synced, not the competition&apos;s own records (no point deductions or postponement rules applied).
+        </p>
       </div>
 
       {competitions.length === 0 ? (
