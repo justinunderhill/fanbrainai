@@ -279,22 +279,6 @@ export default async function Home() {
         </section>
       )}
 
-      <section>
-        <div className="mb-5">
-          <h2 className="text-2xl font-black">Spread the word</h2>
-          <p className="text-gray-400">Pull your friends into the football chaos — more rivals, more bragging rights.</p>
-        </div>
-        <ShareButtons
-          path="/"
-          showImage={false}
-          tone="amber"
-          title="FanBrain AI"
-          heading="Invite friends to FanBrain"
-          blurb="Share the app so your group can predict, get AI verdicts, and battle for the leaderboard together."
-          shareText="Predicting Premier League, Champions League and more with FanBrain AI — make your calls and find out what kind of fan you really are ⚽"
-        />
-      </section>
-
       {liveMatches.length > 0 && (
         <section>
           <div className="mb-5 flex items-center gap-3">
@@ -322,6 +306,22 @@ export default async function Home() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {displayedMatches.map((match) => <MatchCard key={match.id} match={match} />)}
         </div>
+      </section>
+
+      <section>
+        <div className="mb-5">
+          <h2 className="text-2xl font-black">Spread the word</h2>
+          <p className="text-gray-400">Pull your friends into the football chaos — more rivals, more bragging rights.</p>
+        </div>
+        <ShareButtons
+          path="/"
+          showImage={false}
+          tone="amber"
+          title="FanBrain AI"
+          heading="Invite friends to FanBrain"
+          blurb="Share the app so your group can predict, get AI verdicts, and battle for the leaderboard together."
+          shareText="Predicting Premier League, Champions League and more with FanBrain AI — make your calls and find out what kind of fan you really are ⚽"
+        />
       </section>
     </div>
   );
