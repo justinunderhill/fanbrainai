@@ -70,7 +70,14 @@ async function getNextTournamentCountdown(): Promise<NextTournament | null> {
   }
   if (!best) return null;
 
-  const daysUntil = Math.ceil((new Date(best.kickoffTime).getTime() - Date.now()) / 86_400_000);
+  // Calendar-day diff (UTC midnight to UTC midnight), not a raw duration ceil —
+  // otherwise a same-day kickoff time (e.g. 19:00 UTC) rounds up an extra day
+  // for most of the day, making the countdown look "stuck" a day ahead.
+  const kickoffDate = new Date(best.kickoffTime);
+  const kickoffMidnight = Date.UTC(kickoffDate.getUTCFullYear(), kickoffDate.getUTCMonth(), kickoffDate.getUTCDate());
+  const nowDate = new Date();
+  const todayMidnight = Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate());
+  const daysUntil = Math.round((kickoffMidnight - todayMidnight) / 86_400_000);
   return daysUntil > 0 ? { competitionName: best.competitionName, daysUntil } : null;
 }
 
