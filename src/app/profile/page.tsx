@@ -41,20 +41,16 @@ export default async function ProfilePage() {
     );
   }
 
-  const { data: profile } = await supabase.from('fan_profiles').select('*').eq('user_id', auth.user.id).maybeSingle();
-  const { data: userRow } = await supabase.from('users').select('display_name').eq('id', auth.user.id).maybeSingle();
-
-  // Prediction streak: 🔥 correct calls in a row across settled picks (see currentStreak).
-  // prediction_style + created_at also drive the post-unlock progression panel.
-  const { data: predictionData } = await supabase
-    .from('predictions')
-    .select('match_id, points_awarded, prediction_style, created_at')
-    .eq('user_id', auth.user.id);
+  // None of these four depend on each other — only on auth.user.id, already resolved above.
+  const [{ data: profile }, { data: userRow }, { data: predictionData }, { data: allMatchData }] = await Promise.all([
+    supabase.from('fan_profiles').select('*').eq('user_id', auth.user.id).maybeSingle(),
+    supabase.from('users').select('display_name').eq('id', auth.user.id).maybeSingle(),
+    // Prediction streak: 🔥 correct calls in a row across settled picks (see currentStreak).
+    // prediction_style + created_at also drive the post-unlock progression panel.
+    supabase.from('predictions').select('match_id, points_awarded, prediction_style, created_at').eq('user_id', auth.user.id),
+    supabase.from('matches_with_teams').select('*').order('kickoff_time', { ascending: true }),
+  ]);
   const predictions = (predictionData ?? []) as ProfilePrediction[];
-  const { data: allMatchData } = await supabase
-    .from('matches_with_teams')
-    .select('*')
-    .order('kickoff_time', { ascending: true });
   const allMatches = (allMatchData ?? []) as MatchWithTeams[];
   const nextAction = buildNextAction({
     signedIn: true,

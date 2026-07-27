@@ -61,30 +61,20 @@ export default async function LeaderboardPage({
     const selected = selectedCode ? competitions.find((c) => c.code === selectedCode) : undefined;
     const competitionId = selected?.id ?? null;
 
+    // One full-ordering fetch covers the top-50 display, "my" row, and "my" rank —
+    // rank can sit outside the top 50, but it's still just an index into this same
+    // list, so there's no need for separate top-50/mine/rank RPC calls.
     const { data } = await supabase
       .rpc('leaderboard', { p_competition_id: competitionId })
       .select('*')
-      .order('total_points', { ascending: false })
-      .limit(50);
-    rows = (data ?? []) as Row[];
+      .order('total_points', { ascending: false });
+    const standings = (data ?? []) as Row[];
+    rows = standings.slice(0, 50);
 
     const { data: auth } = authResult;
     if (auth.user) {
-      const [mineResult, standingsResult] = await Promise.all([
-        supabase.rpc('leaderboard', { p_competition_id: competitionId }).select('*').eq('user_id', auth.user.id).maybeSingle(),
-        supabase
-          .rpc('leaderboard', { p_competition_id: competitionId })
-          .select('user_id')
-          .order('total_points', { ascending: false }),
-      ]);
-      const { data: mineData } = mineResult;
-      const mine = mineData as Row | null;
-      if (mine) {
-        // True rank may sit outside the top 50, so derive it from the full ordering.
-        const standings = (standingsResult.data ?? []) as { user_id: string }[];
-        const index = standings.findIndex((r) => r.user_id === auth.user!.id);
-        me = { rank: index >= 0 ? index + 1 : null, row: mine };
-      }
+      const index = standings.findIndex((r) => r.user_id === auth.user!.id);
+      if (index >= 0) me = { rank: index + 1, row: standings[index] };
     }
   }
   const podium = rows.slice(0, 3);

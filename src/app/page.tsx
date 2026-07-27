@@ -7,7 +7,7 @@ import { SetupNotice } from '@/components/SetupNotice';
 import { ShareButtons } from '@/components/ShareButtons';
 import { TeamBadge } from '@/components/TeamBadge';
 import { buildNextAction } from '@/lib/next-action';
-import { getStandings } from '@/lib/standings';
+import { computeStandings, getStandings } from '@/lib/standings';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { Competition, MatchWithTeams, Prediction } from '@/lib/types';
@@ -18,19 +18,17 @@ type TopOfTheLog = { competition: Competition; leader: Awaited<ReturnType<typeof
 // open the full /table page just to check the league leader.
 async function getTopOfTheLog(): Promise<TopOfTheLog[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from('competitions')
-    .select('id, code, name, season, is_active')
-    .eq('is_active', true)
-    .order('name');
-  const competitions = (data ?? []) as Competition[];
+  const [competitionsResult, matchesResult] = await Promise.all([
+    supabase.from('competitions').select('id, code, name, season, is_active').eq('is_active', true).order('name'),
+    supabase.from('matches_with_teams').select('*'),
+  ]);
+  const competitions = (competitionsResult.data ?? []) as Competition[];
+  const matches = (matchesResult.data ?? []) as MatchWithTeams[];
 
-  return Promise.all(
-    competitions.map(async (competition) => {
-      const rows = await getStandings(supabase, competition.id);
-      return { competition, leader: rows[0] ?? null };
-    }),
-  );
+  return competitions.map((competition) => {
+    const rows = computeStandings(matches.filter((m) => m.competition_id === competition.id));
+    return { competition, leader: rows[0] ?? null };
+  });
 }
 
 type NextTournament = { competitionName: string; daysUntil: number };
@@ -47,25 +45,30 @@ type NextTournament = { competitionName: string; daysUntil: number };
  */
 async function getNextTournamentCountdown(): Promise<NextTournament | null> {
   const supabase = await createClient();
-  const { data: competitionsData } = await supabase.from('competitions').select('id, name').eq('is_active', true);
-  const competitions = (competitionsData ?? []) as { id: string; name: string }[];
-  if (competitions.length === 0) return null;
-
-  const { data: matchesData } = await supabase
+  // Single round-trip: join matches -> competitions and filter on the
+  // embedded resource, instead of fetching competitions then matches separately.
+  const { data } = await supabase
     .from('matches')
-    .select('competition_id, status, kickoff_time')
-    .in('competition_id', competitions.map((c) => c.id));
-  const matches = (matchesData ?? []) as { competition_id: string; status: string; kickoff_time: string }[];
+    .select('status, kickoff_time, competitions!inner(name, is_active)')
+    .eq('competitions.is_active', true);
+  const matches = (data ?? []) as unknown as { status: string; kickoff_time: string; competitions: { name: string } }[];
+  if (matches.length === 0) return null;
+
+  const byCompetition = new Map<string, { status: string; kickoff_time: string }[]>();
+  for (const m of matches) {
+    const list = byCompetition.get(m.competitions.name) ?? [];
+    list.push(m);
+    byCompetition.set(m.competitions.name, list);
+  }
 
   let best: { competitionName: string; kickoffTime: string } | null = null;
-  for (const competition of competitions) {
-    const compMatches = matches.filter((m) => m.competition_id === competition.id);
+  for (const [competitionName, compMatches] of byCompetition) {
     if (compMatches.some((m) => m.status === 'final' || m.status === 'live')) continue;
     const scheduled = compMatches.filter((m) => m.status === 'scheduled');
     if (scheduled.length === 0) continue;
     const earliest = scheduled.reduce((a, b) => (new Date(a.kickoff_time) < new Date(b.kickoff_time) ? a : b));
     if (!best || new Date(earliest.kickoff_time) < new Date(best.kickoffTime)) {
-      best = { competitionName: competition.name, kickoffTime: earliest.kickoff_time };
+      best = { competitionName, kickoffTime: earliest.kickoff_time };
     }
   }
   if (!best) return null;

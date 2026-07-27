@@ -26,8 +26,13 @@ export async function getStandings(supabase: SupabaseClient, competitionId: stri
     .from('matches_with_teams')
     .select('*')
     .eq('competition_id', competitionId);
-  const matches = (data ?? []) as MatchWithTeams[];
+  return computeStandings((data ?? []) as MatchWithTeams[]);
+}
 
+/** Pure table computation, split out so callers who already have matches for
+ * several competitions in hand (e.g. one bulk fetch) can avoid a per-competition
+ * round-trip — see getTopOfTheLog in src/app/page.tsx. */
+export function computeStandings(matches: MatchWithTeams[]): StandingsRow[] {
   const table = new Map<string, StandingsRow>();
   function row(team: Team): StandingsRow {
     let r = table.get(team.id);
