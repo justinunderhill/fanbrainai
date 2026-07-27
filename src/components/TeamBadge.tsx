@@ -101,7 +101,6 @@ export function TeamBadge({ team, size = 'md' }: { team: Team; size?: keyof type
           alt={`${team.name} crest`}
           className="h-full w-full object-contain p-1"
           loading="lazy"
-          unoptimized
         />
       ) : (
         <span className="text-sm font-black text-gray-200">{fallback}</span>
