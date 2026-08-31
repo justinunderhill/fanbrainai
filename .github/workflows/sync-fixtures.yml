@@ -1,41 +1,21 @@
 name: Sync fixtures & settle points
 
-# Polls the production sync-fixtures endpoint every 30 min during the WC2026
-# tournament window so prediction points settle within ~30 min of a match going
-# final. The Vercel Hobby plan caps crons at once/day, hence this free GitHub
-# Actions schedule. No app secrets beyond CRON_SECRET (a repo Actions secret,
-# same value as the Vercel env var). The route is idempotent — safe to re-run.
+# Polls the production sync-fixtures endpoint every 30 min year-round so results
+# across domestic leagues and continental competitions settle promptly. The
+# Vercel Hobby plan caps crons at once/day, hence this free GitHub Actions
+# schedule. No app secrets beyond CRON_SECRET (a repo Actions secret, same value
+# as the Vercel env var). The route is idempotent — safe to re-run.
 
 on:
   schedule:
-    # Every 30 min, but only in June & July (cron has no date-range field; the
-    # exact 2026-06-11 → 2026-07-19 window is enforced by the date-guard step).
-    - cron: '*/30 * * 6,7 *'
-  workflow_dispatch: # manual "Run workflow" button — bypasses the date guard
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Check tournament window
-        id: window
-        run: |
-          today=$(date -u +%Y-%m-%d)
-          start=2026-06-11
-          end=2026-07-19
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "Manual run — bypassing date guard."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          elif [[ ! "$today" < "$start" && ! "$today" > "$end" ]]; then
-            echo "$today is within tournament window ($start → $end)."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "$today is outside tournament window ($start → $end) — skipping."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Trigger sync
-        if: steps.window.outputs.run == 'true'
         run: |
           # -f: non-zero exit on HTTP error so failed syncs surface as red runs.
           curl -fsS -X POST \

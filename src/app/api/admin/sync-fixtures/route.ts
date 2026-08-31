@@ -78,6 +78,13 @@ async function run(request: Request) {
     }
   }
 
+  // A club can belong to more than one active competition (for example,
+  // Arsenal appears in both the Premier League and Champions League feeds).
+  // PostgreSQL rejects a single ON CONFLICT statement when the same id occurs
+  // more than once, so collapse provider rows by their stable team id before
+  // sending the bulk upsert.
+  const uniqueTeams = Array.from(new Map(teams.map((team) => [team.id, team])).values());
+
   // One-time removal of the placeholder seed data (and any test predictions on
   // those fake matches, via cascade). Real rows use different ids, so this never
   // touches imported data.
@@ -99,7 +106,7 @@ async function run(request: Request) {
     purgedTeams = tCount ?? 0;
   }
 
-  const { error: teamErr } = await supabase.from('teams').upsert(teams, { onConflict: 'id' });
+  const { error: teamErr } = await supabase.from('teams').upsert(uniqueTeams, { onConflict: 'id' });
   if (teamErr) {
     return NextResponse.json({ error: `teams upsert: ${teamErr.message}` }, { status: 500 });
   }
@@ -174,7 +181,7 @@ async function run(request: Request) {
 
   return NextResponse.json({
     competitions: competitionResults,
-    teamsUpserted: teams.length,
+    teamsUpserted: uniqueTeams.length,
     matchesUpserted: matchesToWrite.length,
     skippedDowngrades,
     finalMatches: finalMatches?.length ?? 0,
