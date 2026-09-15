@@ -46,14 +46,17 @@ export default async function LeaderboardPage({
   let rows: Row[] = [];
   let me: { rank: number | null; row: Row } | null = null;
   let competitions: Competition[] = [];
+  let liveCompetitionIds = new Set<string>();
 
   if (supabaseConfigured) {
     const supabase = await createClient();
-    const [competitionsResult, authResult] = await Promise.all([
+    const [competitionsResult, authResult, liveResult] = await Promise.all([
       supabase.from('competitions').select('id, code, name, season, is_active').order('name'),
       supabase.auth.getUser(),
+      supabase.from('matches').select('competition_id').eq('status', 'live'),
     ]);
     competitions = (competitionsResult.data ?? []) as Competition[];
+    liveCompetitionIds = new Set((liveResult.data ?? []).map((m) => m.competition_id as string));
 
     // Default (no selection) scopes to active competitions only, so a retired
     // tournament's points don't linger on "the" leaderboard forever — an
@@ -117,6 +120,7 @@ export default async function LeaderboardPage({
           selectedCode={selectedCode ?? null}
           basePath="/leaderboard"
           allLabel="All active"
+          liveCompetitionIds={liveCompetitionIds}
         />
       )}
 

@@ -1,65 +1,52 @@
-'use client';
-
-import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { MatchCard } from '@/components/MatchCard';
 import type { MatchWithTeams } from '@/lib/types';
 
 type View = 'upcoming' | 'completed';
 
-// Live games rank above not-yet-played ones; final matches are "completed".
-function isCompleted(match: MatchWithTeams) {
-  return match.status === 'final';
-}
-
 /**
- * Client-side match browser with an Upcoming/Completed toggle. As the tournament
- * progresses the finished games pile up, so we default to Upcoming (soonest first,
- * live pinned to the top) and tuck completed matches behind a tab — newest first —
- * so users never have to scroll past results to reach the next fixtures. Falls
- * back to the Completed view automatically once nothing is upcoming.
+ * Upcoming/Completed toggle for the match grid. The page above already fetches
+ * only the matches for the active tab (server-filtered by status), so this
+ * component just renders what it's given — switching tabs is a real navigation
+ * (?view=), not a client-side filter over an already-downloaded full season.
  */
 export function MatchesBrowser({
   matches,
   predictedMatchIds,
+  view,
+  upcomingCount,
+  completedCount,
+  competitionCode,
 }: {
   matches: MatchWithTeams[];
   predictedMatchIds: string[];
+  view: View;
+  upcomingCount: number;
+  completedCount: number;
+  competitionCode: string | null;
 }) {
-  const predicted = useMemo(() => new Set(predictedMatchIds), [predictedMatchIds]);
+  const predicted = new Set(predictedMatchIds);
 
-  const { upcoming, completed } = useMemo(() => {
-    const up: MatchWithTeams[] = [];
-    const done: MatchWithTeams[] = [];
-    for (const match of matches) (isCompleted(match) ? done : up).push(match);
-
-    up.sort((a, b) => {
-      // Live first, then by soonest kickoff.
-      if (a.status === 'live' && b.status !== 'live') return -1;
-      if (b.status === 'live' && a.status !== 'live') return 1;
-      return new Date(a.kickoff_time).getTime() - new Date(b.kickoff_time).getTime();
-    });
-    // Most-recently-played first.
-    done.sort((a, b) => new Date(b.kickoff_time).getTime() - new Date(a.kickoff_time).getTime());
-
-    return { upcoming: up, completed: done };
-  }, [matches]);
-
-  const [view, setView] = useState<View>(upcoming.length > 0 ? 'upcoming' : 'completed');
-
-  const shown = view === 'upcoming' ? upcoming : completed;
+  function href(nextView: View) {
+    const params = new URLSearchParams();
+    if (competitionCode) params.set('competition', competitionCode);
+    if (nextView === 'completed') params.set('view', 'completed');
+    const query = params.toString();
+    return query ? `/matches?${query}` : '/matches';
+  }
 
   return (
     <div className="space-y-6">
       <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
-        <TabButton active={view === 'upcoming'} count={upcoming.length} onClick={() => setView('upcoming')}>
+        <TabLink href={href('upcoming')} active={view === 'upcoming'} count={upcomingCount}>
           Upcoming
-        </TabButton>
-        <TabButton active={view === 'completed'} count={completed.length} onClick={() => setView('completed')}>
+        </TabLink>
+        <TabLink href={href('completed')} active={view === 'completed'} count={completedCount}>
           Completed
-        </TabButton>
+        </TabLink>
       </div>
 
-      {shown.length === 0 ? (
+      {matches.length === 0 ? (
         <p className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-gray-400">
           {view === 'upcoming'
             ? 'No upcoming matches right now — check the Completed tab to revisit results.'
@@ -67,7 +54,7 @@ export function MatchesBrowser({
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {shown.map((match) => (
+          {matches.map((match) => (
             <MatchCard key={match.id} match={match} predicted={predicted.has(match.id)} />
           ))}
         </div>
@@ -76,22 +63,21 @@ export function MatchesBrowser({
   );
 }
 
-function TabButton({
+function TabLink({
+  href,
   active,
   count,
-  onClick,
   children,
 }: {
+  href: string;
   active: boolean;
   count: number;
-  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
       className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition-colors ${
         active ? 'bg-emerald-400 text-gray-950 shadow-glow' : 'text-gray-300 hover:bg-white/5 hover:text-white'
       }`}
@@ -104,6 +90,6 @@ function TabButton({
       >
         {count}
       </span>
-    </button>
+    </Link>
   );
 }

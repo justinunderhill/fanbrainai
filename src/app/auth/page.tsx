@@ -12,13 +12,16 @@ type Message = {
 };
 
 function getRedirectTarget() {
-  const fallback = '/matches';
+  // Home surfaces the results recap (points banked, rank change, AI debrief)
+  // right at the top the moment there's something settled to show — so sign-in
+  // should land there, not skip past it straight to Matches.
+  const fallback = '/';
   const params = new URLSearchParams(window.location.search);
   const next = params.get('next');
 
   // Only honor an explicit, same-origin `next` (e.g. the "Sign in to predict"
-  // CTA returning you to a match). Otherwise land on the Matches hub — no
-  // referrer-based guessing, which used to dump users on a random match page.
+  // CTA returning you to a match). Otherwise land on Home — no referrer-based
+  // guessing, which used to dump users on a random match page.
   if (next && next.startsWith('/') && !next.startsWith('//')) return next;
 
   return fallback;
@@ -70,7 +73,7 @@ function AuthPageInner() {
         return;
       }
 
-      showMessage({ type: 'success', text: 'Signed in. Taking you to matches...' });
+      showMessage({ type: 'success', text: 'Signed in. Taking you in...' });
       router.replace(getRedirectTarget());
       router.refresh();
     } catch (error) {
@@ -143,7 +146,7 @@ function AuthPageInner() {
       }
 
       if (data.session) {
-        showMessage({ type: 'success', text: 'Account created. Taking you to matches...' });
+        showMessage({ type: 'success', text: 'Account created. Taking you in...' });
         router.replace(redirectTarget);
         router.refresh();
       } else {

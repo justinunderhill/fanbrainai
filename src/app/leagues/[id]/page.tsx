@@ -50,28 +50,24 @@ export default async function LeagueDetailPage({ params }: { params: Promise<{ i
     );
   }
 
-  // RLS only returns the league row if the viewer is a member.
-  const { data: leagueData } = await supabase
-    .from('leagues')
-    .select('id, name, owner_id, invite_code, competition_id')
-    .eq('id', id)
-    .maybeSingle();
+  // RLS only returns the league row if the viewer is a member. The competition
+  // name comes along via an embedded select instead of a follow-up query, and
+  // the members-only standings RPC doesn't depend on the league row resolving
+  // first, so both run in parallel rather than as a three-request waterfall.
+  const [leagueResult, standingsResult] = await Promise.all([
+    supabase
+      .from('leagues')
+      .select('id, name, owner_id, invite_code, competition_id, competitions(name)')
+      .eq('id', id)
+      .maybeSingle(),
+    supabase.rpc('league_leaderboard', { p_league: id }),
+  ]);
+  const leagueData = leagueResult.data as (LeagueRow & { competitions: { name: string } | null }) | null;
   if (!leagueData) notFound();
-  const league = leagueData as LeagueRow;
+  const league = leagueData;
+  const competitionName = leagueData.competitions?.name ?? null;
 
-  let competitionName: string | null = null;
-  if (league.competition_id) {
-    const { data: competitionData } = await supabase
-      .from('competitions')
-      .select('name')
-      .eq('id', league.competition_id)
-      .maybeSingle();
-    competitionName = competitionData?.name ?? null;
-  }
-
-  // Members-only standings via the guarded RPC.
-  const { data: standingsData } = await supabase.rpc('league_leaderboard', { p_league: id });
-  const rows = (standingsData ?? []) as StandingRow[];
+  const rows = (standingsResult.data ?? []) as StandingRow[];
   const podium = rows.slice(0, 3);
   const currentUserId = auth.user.id;
   const isOwner = league.owner_id === currentUserId;
