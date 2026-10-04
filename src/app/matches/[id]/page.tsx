@@ -3,6 +3,7 @@ import { PredictionAuthGate } from '@/components/PredictionAuthGate';
 import { SetupNotice } from '@/components/SetupNotice';
 import { TeamBadge } from '@/components/TeamBadge';
 import { TeamFormPanel } from '@/components/TeamForm';
+import { RefreshResults } from '@/components/MatchUpdates';
 import { hasSupabasePublicEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { getTeamForm } from '@/lib/team-form';
@@ -84,7 +85,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
             <TeamBadge team={match.home_team} size="lg" />
             <h1 className="mt-3 truncate text-2xl font-black">{match.home_team.name}</h1>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-gray-950/60 px-5 py-3 text-2xl font-black shadow-[0_0_30px_rgba(16,185,129,0.18)] backdrop-blur">vs</div>
+          <div className="rounded-3xl border border-white/10 bg-gray-950/60 px-3 py-3 text-xl font-black tabular-nums shadow-[0_0_30px_rgba(16,185,129,0.18)] backdrop-blur sm:px-5 sm:text-2xl">
+            {match.status === 'final' || match.status === 'live'
+              ? `${match.home_score ?? '–'} - ${match.away_score ?? '–'}`
+              : 'vs'}
+          </div>
           <div className="min-w-0 text-right">
             <div className="ml-auto w-fit">
               <TeamBadge team={match.away_team} size="lg" />
@@ -93,6 +98,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <p className="relative mt-6 text-gray-200">{formatKickoff(match.kickoff_time)}{match.venue ? ` · ${match.venue}` : ''}</p>
+        <div className="relative mt-4"><RefreshResults /></div>
       </section>
 
       <TeamFormPanel

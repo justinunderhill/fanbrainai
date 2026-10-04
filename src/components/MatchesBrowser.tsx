@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MatchCard } from '@/components/MatchCard';
+import { RefreshResults } from '@/components/MatchUpdates';
 import type { MatchWithTeams } from '@/lib/types';
 
 type View = 'upcoming' | 'completed';
@@ -37,13 +38,16 @@ export function MatchesBrowser({
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
-        <TabLink href={href('upcoming')} active={view === 'upcoming'} count={upcomingCount}>
-          Upcoming
-        </TabLink>
-        <TabLink href={href('completed')} active={view === 'completed'} count={completedCount}>
-          Completed
-        </TabLink>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+          <TabLink href={href('upcoming')} active={view === 'upcoming'} count={upcomingCount}>
+            Upcoming
+          </TabLink>
+          <TabLink href={href('completed')} active={view === 'completed'} count={completedCount}>
+            Completed
+          </TabLink>
+        </div>
+        <RefreshResults />
       </div>
 
       {matches.length === 0 ? (

@@ -53,6 +53,9 @@ async function run(request: Request) {
   if (competitionsErr) {
     return NextResponse.json({ error: `competitions lookup: ${competitionsErr.message}` }, { status: 500 });
   }
+  if (!activeCompetitions?.length) {
+    return NextResponse.json({ error: 'No active football-data competitions configured' }, { status: 503 });
+  }
 
   // Fetch every active football-data competition independently — one
   // competition's provider hiccup (rate limit, transient 5xx) shouldn't stop
@@ -179,6 +182,7 @@ async function run(request: Request) {
     console.error('sendPredictionReminders failed', error);
   }
 
+  const hasProviderErrors = Object.values(competitionResults).some((result) => 'error' in result);
   return NextResponse.json({
     competitions: competitionResults,
     teamsUpserted: uniqueTeams.length,
@@ -189,5 +193,5 @@ async function run(request: Request) {
     notifications,
     reminders,
     ...(purgeSeed ? { purgedSeedMatches: purgedMatches, purgedSeedTeams: purgedTeams } : {}),
-  });
+  }, { status: hasProviderErrors ? 502 : 200 });
 }

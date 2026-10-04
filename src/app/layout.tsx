@@ -8,6 +8,7 @@ import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PushSync } from '@/components/PushSync';
 import { SiteHeader } from '@/components/SiteHeader';
 import { UpdateToast } from '@/components/UpdateToast';
+import { MatchUpdates } from '@/components/MatchUpdates';
 import { SITE_URL } from '@/lib/site-url';
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           reloadOnOnline={false}
         >
           <AuthProvider>
+            <MatchUpdates />
             <SiteHeader />
             <main className="pb-page-mobile-nav mx-auto min-h-screen max-w-6xl px-4 pt-8">{children}</main>
             <MobileBottomNav />

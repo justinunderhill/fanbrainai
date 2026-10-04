@@ -16,9 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET" || { echo "Missing CRON_SECRET"; exit 1; }
           # -f: non-zero exit on HTTP error so failed syncs surface as red runs.
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          curl -fsS --connect-timeout 10 --max-time 90 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
             https://fanbrainai.vercel.app/api/admin/sync-fixtures | tee response.json
+          # A partial provider failure still returns the successful competition's
+          # counts. Treat it as a failure even on older deployments returning 200.
+          jq -e '.competitions | type == "object" and length > 0 and all(.[]; has("error") | not)' response.json
           echo "Sync response logged above."
